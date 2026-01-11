@@ -184,3 +184,26 @@ Subtle "Börja om från början" link in footer with confirmation dialog.
 - Accessible but not prominent (prevents accidental reset)
 - Clear warning about data loss
 - Useful for testing and demo purposes
+
+---
+
+## State Management
+
+### Decision: Stable Card Order During Gameplay
+**Date:** January 11, 2025
+**Status:** Implemented
+
+**Problem:**
+After answering a question, the app would flip back to question 1 after 1-2 seconds.
+
+**Root Cause:**
+The `cards` useMemo in level/boss pages included `cardProgress` and `flowState` as dependencies. When `recordCardAnswer()` updated the store, these changes triggered a recomputation of the cards array. Functions like `sortCardsByAdaptivePriority()` would reorder cards based on new progress, but `currentCardIndex` stayed the same number—now pointing to a different card.
+
+**Solution:**
+Remove `cardProgress` and `flowState` from useMemo dependencies. Card order is computed once when the level starts using a seeded shuffle, then remains stable throughout the session.
+
+**Trade-off:**
+We lose mid-level adaptive card sorting (prioritizing struggling cards). However, the shuffle already provides randomization, and adaptive sorting can happen at level start based on initial progress state.
+
+**Lesson Learned:**
+When using useMemo with arrays that determine UI position (like card order), be careful about dependencies that update frequently. The index-to-item mapping must remain stable during the session.
