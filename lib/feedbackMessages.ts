@@ -33,7 +33,7 @@ const SPEED_MESSAGES = {
 // Streak celebration messages
 const STREAK_MESSAGES: Record<number, string[]> = {
   3: ['3 i rad!', 'Trepoängare!', 'Hattrick!'],
-  5: ['5 i rad!', 'Fantastiskt!', 'Du är på rulle!'],
+  5: ['5 i rad!', 'Fantastiskt!', 'Det går bra nu!'],
   7: ['7 i rad!', 'Otroligt!', 'Ostoppbar!'],
   10: ['10 i rad!', 'MÄSTARE!', 'Legendariskt!'],
 };
@@ -41,8 +41,8 @@ const STREAK_MESSAGES: Record<number, string[]> = {
 // Mastery celebration (Theory of Fun - "grokking")
 const MASTERY_MESSAGES = [
   'BEHÄRSKAD!',
-  'MÄSTRAD!',
-  'DU KAN DET!',
+  'BEMÄSTRAD!',
+  'DU HAR KOLL!',
 ];
 
 // Wrong answer messages
@@ -86,7 +86,7 @@ export function getFeedbackMessage(context: FeedbackContext): FeedbackMessage {
   if (correct && newBucket === 'mastered' && previousBucket !== 'mastered') {
     return {
       title: pickRandom(MASTERY_MESSAGES),
-      subtitle: 'Du behärskar detta kort! +25 XP',
+      subtitle: 'Du behärskar det här kortet! +25 XP',
       isMastery: true,
     };
   }
@@ -133,10 +133,10 @@ export function getBucketTransitionMessage(previous: CardBucket, next: CardBucke
     return '📈 Bra framsteg!';
   }
   if (next === 'learning' && previous === 'new') {
-    return '🌱 Du har börjat lära dig detta kort';
+    return '🌱 Du har börjat lära dig det här kortet';
   }
   if (previous === 'mastered' || previous === 'reviewing') {
-    return '📉 Dags att repetera detta kort';
+    return '📉 Dags att repetera det här kortet';
   }
 
   return null;

@@ -138,7 +138,7 @@ export default function StatsPage() {
           </Link>
 
           <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
-            Kunskapskarta
+            Lägeskoll
           </h1>
 
           <div className="w-16" /> {/* Spacer for alignment */}

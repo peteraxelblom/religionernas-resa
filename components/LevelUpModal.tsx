@@ -106,7 +106,7 @@ export default function LevelUpModal({ newLevel, previousLevel, onClose }: Level
               className="relative"
             >
               <p className="text-white/90 font-bold text-lg uppercase tracking-widest mb-2">
-                Nivå Upp!
+                Level up!
               </p>
             </motion.div>
 

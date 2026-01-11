@@ -144,7 +144,7 @@ export default function Home() {
                 whileTap={{ scale: 0.98 }}
                 className="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl text-sm shadow hover:shadow-lg transition-shadow"
               >
-                📊 Kunskapskarta
+                🧘 Lägeskoll
               </motion.button>
             </Link>
           </div>
