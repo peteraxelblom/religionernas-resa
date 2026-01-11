@@ -14,7 +14,6 @@ import {
   calculatePerformanceMetrics,
   determineFlowState,
   getAdaptiveSettings,
-  sortCardsByAdaptivePriority,
   calculateAdaptivePoints,
   getEncouragementMessage,
   shouldShowHint,
@@ -69,6 +68,8 @@ export default function LevelPage() {
 
   // Get cards for this level - for boss levels, get random cards from religion
   // Randomize order to prevent learning screen positions instead of content
+  // IMPORTANT: Only compute once when level starts (no cardProgress/flowState deps)
+  // to prevent reordering mid-level when answers are recorded
   const cards = useMemo(() => {
     if (!level) return [];
 
@@ -95,9 +96,8 @@ export default function LevelPage() {
       .sort((a, b) => a.sort - b.sort)
       .map(({ card }) => card);
 
-    // Apply adaptive sorting (prioritizes cards needing review)
-    return sortCardsByAdaptivePriority(levelCards, cardProgress, flowState);
-  }, [level, levelId, cardProgress, flowState, shuffleSeed]);
+    return levelCards;
+  }, [level, levelId, shuffleSeed]);
 
   const currentCard = cards[currentCardIndex];
   const progress = cards.length > 0 ? ((currentCardIndex) / cards.length) * 100 : 0;

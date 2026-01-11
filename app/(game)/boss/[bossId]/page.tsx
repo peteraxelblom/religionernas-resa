@@ -16,7 +16,6 @@ import {
   calculateBossDamage,
   calculateBossAttackDamage,
   getBossDifficultyModifier,
-  sortBossCards,
 } from '@/lib/bossMechanics';
 import { hasRewardEffect } from '@/lib/playerLevel';
 import { STRINGS } from '@/lib/strings/sv';
@@ -68,7 +67,9 @@ export default function BossPage() {
     return getCardsByReligion(boss.religion);
   }, [boss, bossId]);
 
-  // Get cards for boss battle with adaptive sorting
+  // Get cards for boss battle
+  // IMPORTANT: Only compute once when battle starts (no cardProgress/streak deps)
+  // to prevent reordering mid-battle when answers are recorded
   const cards = useMemo(() => {
     if (!boss) return [];
 
@@ -90,9 +91,8 @@ export default function BossPage() {
       bossCards = seededShuffle(getCardsByReligion(boss.religion)).slice(0, boss.health);
     }
 
-    // Apply adaptive sorting based on streak
-    return sortBossCards(bossCards, cardProgress, streak);
-  }, [boss, bossId, cardProgress, streak, shuffleSeed]);
+    return bossCards;
+  }, [boss, bossId, shuffleSeed]);
 
   const currentCard = cards[currentCardIndex];
 
