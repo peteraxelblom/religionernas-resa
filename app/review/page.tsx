@@ -32,13 +32,22 @@ export default function ReviewPage() {
   const [reviewComplete, setReviewComplete] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Get due cards
+  // Stable shuffle seed - changes each time review is started
+  const [shuffleSeed] = useState(() => Math.random());
+
+  // Get due cards - shuffled to prevent learning order instead of content
   const dueCards = useMemo(() => {
     const dueCardIds = getDueCardIds();
-    return dueCardIds
+    const cards = dueCardIds
       .map(id => getCardById(id))
       .filter((card): card is Card => card !== undefined);
-  }, [getDueCardIds, cardProgress]); // Re-compute when cardProgress changes
+
+    // Shuffle cards using seeded random for consistent order during session
+    return cards
+      .map((card, i) => ({ card, sort: Math.sin(shuffleSeed * 1000 + i) }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ card }) => card);
+  }, [getDueCardIds, cardProgress, shuffleSeed]); // Re-compute when cardProgress changes
 
   const currentCard = dueCards[currentCardIndex];
   const progress = dueCards.length > 0 ? (currentCardIndex / dueCards.length) * 100 : 0;

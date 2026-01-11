@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardBucket } from '@/types/card';
 import { getBucketLabel } from '@/lib/spacedRepetition';
@@ -39,6 +39,20 @@ export default function FlashCard({
     isMastery?: boolean;
     bucketTransition?: string;
   } | null>(null);
+
+  // Shuffle multiple choice options to prevent learning positions instead of content
+  // Uses card.id as seed for consistent shuffle per card during session
+  const shuffledOptions = useMemo(() => {
+    if (!card.options || card.type !== 'multiple_choice') return card.options;
+
+    // Create a simple hash from card.id for seeded shuffle
+    const seed = card.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    return [...card.options]
+      .map((option, i) => ({ option, sort: Math.sin(seed * 100 + i * 17) }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ option }) => option);
+  }, [card.id, card.options, card.type]);
 
   useEffect(() => {
     // Reset state when card changes
@@ -185,7 +199,7 @@ export default function FlashCard({
       case 'multiple_choice':
         return (
           <div className="grid grid-cols-1 gap-3 mt-6">
-            {card.options?.map((option, index) => (
+            {shuffledOptions?.map((option, index) => (
               <motion.button
                 key={index}
                 onClick={() => handleAnswer(option)}

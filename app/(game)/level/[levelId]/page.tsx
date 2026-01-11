@@ -53,8 +53,11 @@ export default function LevelPage() {
 
   const level = useMemo(() => getLevelById(levelId), [levelId]);
 
+  // Stable shuffle seed - changes each time the level is started
+  const [shuffleSeed] = useState(() => Math.random());
+
   // Get cards for this level - for boss levels, get random cards from religion
-  // Apply adaptive sorting based on flow state (Phase 3)
+  // Randomize order to prevent learning screen positions instead of content
   const cards = useMemo(() => {
     if (!level) return [];
 
@@ -64,21 +67,26 @@ export default function LevelPage() {
       // Boss level: get cards from the religion
       if (levelId === 'boss-final') {
         // Final boss: random cards from all religions
-        levelCards = [...allCards].sort(() => Math.random() - 0.5).slice(0, 15);
+        levelCards = [...allCards].slice(0, 15);
       } else {
         // Religion boss: get cards from that religion
-        levelCards = getCardsByReligion(level.religion)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 12);
+        levelCards = getCardsByReligion(level.religion).slice(0, 12);
       }
     } else {
       // Normal level: get cards by level ID
-      levelCards = getCardsByLevel(levelId);
+      levelCards = [...getCardsByLevel(levelId)];
     }
 
-    // Apply adaptive sorting based on flow state
+    // Shuffle cards to prevent learning order instead of content
+    // Use seeded shuffle for consistent order during the level session
+    levelCards = levelCards
+      .map((card, i) => ({ card, sort: Math.sin(shuffleSeed * 1000 + i) }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ card }) => card);
+
+    // Apply adaptive sorting (prioritizes cards needing review)
     return sortCardsByAdaptivePriority(levelCards, cardProgress, flowState);
-  }, [level, levelId, cardProgress, flowState]);
+  }, [level, levelId, cardProgress, flowState, shuffleSeed]);
 
   const currentCard = cards[currentCardIndex];
   const progress = cards.length > 0 ? ((currentCardIndex) / cards.length) * 100 : 0;
