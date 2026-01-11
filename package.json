@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:framer": "./scripts/check-animate-presence-keys.sh",
+    "lint:all": "npm run lint && npm run lint:framer",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint:all",
     "test": "vitest",
     "test:run": "vitest run"
   },

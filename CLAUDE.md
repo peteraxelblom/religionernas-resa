@@ -86,3 +86,50 @@ This preserves institutional knowledge across sessions.
 - **Daily Challenges** - Adaptive difficulty based on performance
 
 The target audience is children learning religious studies in Swedish schools.
+
+---
+
+## Development Checks
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run typecheck` | TypeScript type checking |
+| `npm run lint` | ESLint checks |
+| `npm run lint:framer` | Check AnimatePresence children have keys |
+| `npm run lint:all` | ESLint + Framer Motion checks |
+| `npm run check` | Full check: typecheck + lint:all |
+| `npm run test` | Run tests in watch mode |
+| `npm run test:run` | Run tests once |
+
+### Before Committing
+
+Run `npm run check` to catch:
+- TypeScript errors
+- ESLint issues
+- Missing keys on AnimatePresence children
+
+### Framer Motion Best Practice
+
+**AnimatePresence children must have `key` props** for proper exit animations:
+
+```tsx
+// CORRECT
+<AnimatePresence>
+  {showModal && (
+    <motion.div key="modal" ...>
+      Content
+    </motion.div>
+  )}
+</AnimatePresence>
+
+// WRONG - will cause React key warnings
+<AnimatePresence>
+  {showModal && (
+    <motion.div ...>  {/* Missing key! */}
+      Content
+    </motion.div>
+  )}
+</AnimatePresence>
+```

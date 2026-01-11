@@ -1,5 +1,4 @@
-import { SavedGameData, GameStats, LevelProgress } from '@/types/progress';
-import { CardProgress } from '@/types/card';
+import { SavedGameData, GameStats } from '@/types/progress';
 
 const STORAGE_KEY = 'religionernas-resa-v1';
 

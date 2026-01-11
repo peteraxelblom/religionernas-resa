@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
@@ -24,17 +24,16 @@ import { STRINGS } from '@/lib/strings/sv';
 
 export default function LevelPage() {
   const params = useParams();
-  const router = useRouter();
   const levelId = params.levelId as string;
 
   const {
-    levelProgress,
     completeLevel,
     recordCardAnswer,
     getCardBucket,
     getCardProgress,
-    isLevelCompleted,
     cardProgress,
+    hasReward,
+    isShieldAvailable,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -50,6 +49,18 @@ export default function LevelPage() {
   const [recentAnswers, setRecentAnswers] = useState<{ correct: boolean; responseTimeMs: number }[]>([]);
   const [flowState, setFlowState] = useState<FlowState>('flow');
   const [encouragementMessage, setEncouragementMessage] = useState<string | null>(null);
+
+  // Pre-computed confetti properties for stable rendering
+  const [confettiProps] = useState(() =>
+    [...Array(30)].map(() => ({
+      x: Math.random(),
+      rotate: Math.random() * 720 - 360,
+      duration: 3 + Math.random() * 2,
+      delay: Math.random() * 0.5,
+      colorIndex: Math.floor(Math.random() * 5),
+      isCircle: Math.random() > 0.5,
+    }))
+  );
 
   const level = useMemo(() => getLevelById(levelId), [levelId]);
 
@@ -92,8 +103,31 @@ export default function LevelPage() {
   const progress = cards.length > 0 ? ((currentCardIndex) / cards.length) * 100 : 0;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
   }, []);
+
+  const finishLevel = useCallback(() => {
+    if (!level) return;
+
+    // Calculate stars based on performance
+    const accuracy = cards.length > 0 ? (correctCount / cards.length) * 100 : 0;
+    let stars = 0;
+
+    if (accuracy >= level.passingScore) {
+      stars = 1;
+      if (accuracy >= 80) stars = 2;
+      if (accuracy >= 95) stars = 3;
+    }
+
+    // Complete the level in the store
+    completeLevel(levelId, stars, score);
+
+    // Show celebration and play sound
+    playLevelCompleteSound();
+    setShowConfetti(true);
+    setLevelComplete(true);
+  }, [level, correctCount, cards.length, score, levelId, completeLevel]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard) return;
@@ -148,29 +182,7 @@ export default function LevelPage() {
         finishLevel();
       }
     }, 1800);
-  }, [currentCard, currentCardIndex, cards.length, streak, recordCardAnswer, recentAnswers]);
-
-  const finishLevel = useCallback(() => {
-    if (!level) return;
-
-    // Calculate stars based on performance
-    const accuracy = cards.length > 0 ? (correctCount / cards.length) * 100 : 0;
-    let stars = 0;
-
-    if (accuracy >= level.passingScore) {
-      stars = 1;
-      if (accuracy >= 80) stars = 2;
-      if (accuracy >= 95) stars = 3;
-    }
-
-    // Complete the level in the store
-    completeLevel(levelId, stars, score);
-
-    // Show celebration and play sound
-    playLevelCompleteSound();
-    setShowConfetti(true);
-    setLevelComplete(true);
-  }, [level, correctCount, cards.length, score, levelId, completeLevel]);
+  }, [currentCard, currentCardIndex, cards.length, streak, recordCardAnswer, recentAnswers, finishLevel]);
 
   if (!mounted) {
     return (
@@ -229,33 +241,32 @@ export default function LevelPage() {
       <AnimatePresence>
         {showConfetti && (
           <motion.div
+            key="confetti"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="fixed inset-0 pointer-events-none z-50 overflow-hidden"
           >
-            {[...Array(30)].map((_, i) => (
+            {confettiProps.map((props, i) => (
               <motion.div
                 key={i}
                 initial={{
                   y: -20,
-                  x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 400),
+                  x: props.x * (typeof window !== 'undefined' ? window.innerWidth : 400),
                   rotate: 0,
                 }}
                 animate={{
                   y: typeof window !== 'undefined' ? window.innerHeight + 100 : 800,
-                  rotate: Math.random() * 720 - 360,
+                  rotate: props.rotate,
                 }}
                 transition={{
-                  duration: 3 + Math.random() * 2,
-                  delay: Math.random() * 0.5,
+                  duration: props.duration,
+                  delay: props.delay,
                   ease: 'easeIn',
                 }}
                 className="absolute w-4 h-4"
                 style={{
-                  backgroundColor: ['#fcd34d', '#a78bfa', '#34d399', '#f472b6', '#60a5fa'][
-                    Math.floor(Math.random() * 5)
-                  ],
-                  borderRadius: Math.random() > 0.5 ? '50%' : '0%',
+                  backgroundColor: ['#fcd34d', '#a78bfa', '#34d399', '#f472b6', '#60a5fa'][props.colorIndex],
+                  borderRadius: props.isCircle ? '50%' : '0%',
                 }}
               />
             ))}
@@ -267,6 +278,7 @@ export default function LevelPage() {
       <AnimatePresence>
         {showStreak && (
           <motion.div
+            key="streak"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -297,6 +309,7 @@ export default function LevelPage() {
       <AnimatePresence>
         {encouragementMessage && (
           <motion.div
+            key="encouragement"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -467,6 +480,9 @@ export default function LevelPage() {
                 cardProgress[currentCard.id],
                 getAdaptiveSettings(flowState)
               )}
+              hasDoubleMasteryBonus={hasReward('doubleMasteryXP')}
+              hasSpeedBonusReward={hasReward('speedBonus')}
+              isShieldAvailable={isShieldAvailable()}
             />
           )
         )}

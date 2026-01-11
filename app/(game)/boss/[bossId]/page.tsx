@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
@@ -23,7 +23,6 @@ import { STRINGS } from '@/lib/strings/sv';
 
 export default function BossPage() {
   const params = useParams();
-  const router = useRouter();
   const bossId = params.bossId as string;
 
   const {
@@ -34,6 +33,8 @@ export default function BossPage() {
     unlockAchievement,
     cardProgress,
     getPlayerLevel,
+    hasReward,
+    isShieldAvailable,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -54,7 +55,9 @@ export default function BossPage() {
   const [eventMessage, setEventMessage] = useState<string | null>(null);
   const [showCritical, setShowCritical] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState('NORMAL');
-  const [totalDamageDealt, setTotalDamageDealt] = useState(0);
+
+  // Stable shuffle seed for consistent card order during battle
+  const [shuffleSeed] = useState(() => Math.random());
 
   const boss = useMemo(() => getBossById(bossId), [bossId]);
 
@@ -71,23 +74,30 @@ export default function BossPage() {
 
     let bossCards: Card[] = [];
 
+    // Seeded shuffle function for stable ordering
+    const seededShuffle = <T,>(arr: T[]): T[] => {
+      return [...arr]
+        .map((item, i) => ({ item, sort: Math.sin(shuffleSeed * 1000 + i) }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ item }) => item);
+    };
+
     if (bossId === 'boss-final') {
       // Final boss: random cards from all religions
-      bossCards = [...allCards].sort(() => Math.random() - 0.5).slice(0, 20);
+      bossCards = seededShuffle(allCards).slice(0, 20);
     } else {
       // Religion boss: get cards from that religion
-      bossCards = getCardsByReligion(boss.religion)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, boss.health);
+      bossCards = seededShuffle(getCardsByReligion(boss.religion)).slice(0, boss.health);
     }
 
     // Apply adaptive sorting based on streak
     return sortBossCards(bossCards, cardProgress, streak);
-  }, [boss, bossId, cardProgress, streak]);
+  }, [boss, bossId, cardProgress, streak, shuffleSeed]);
 
   const currentCard = cards[currentCardIndex];
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
     if (boss && religionCards.length > 0) {
       // Calculate difficulty based on player mastery (Phase 3)
@@ -109,6 +119,19 @@ export default function BossPage() {
       setLives(hasExtraLife ? 4 : boss.lives);
     }
   }, [boss, cardProgress, religionCards, getPlayerLevel]);
+
+  const handleVictory = useCallback(() => {
+    if (!boss) return;
+
+    playBossVictorySound();
+    setVictory(true);
+    completeLevel(boss.levelId, 3, score);
+
+    // Unlock achievement
+    if (boss.rewardBadge) {
+      unlockAchievement(boss.rewardBadge);
+    }
+  }, [boss, score, completeLevel, unlockAchievement]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard || !boss) return;
@@ -138,7 +161,6 @@ export default function BossPage() {
 
       const newHealth = bossHealth - result.damage;
       setBossHealth(Math.max(0, newHealth));
-      setTotalDamageDealt(d => d + result.damage);
       setStreak(s => s + 1);
 
       // Grant shield if this was a shield round
@@ -211,20 +233,7 @@ export default function BossPage() {
         }, 1500);
       }
     }
-  }, [currentCard, boss, bossHealth, maxHealth, lives, streak, currentEvent, hasShield, recordCardAnswer, currentCardIndex]);
-
-  const handleVictory = useCallback(() => {
-    if (!boss) return;
-
-    playBossVictorySound();
-    setVictory(true);
-    completeLevel(boss.levelId, 3, score);
-
-    // Unlock achievement
-    if (boss.rewardBadge) {
-      unlockAchievement(boss.rewardBadge);
-    }
-  }, [boss, score, completeLevel, unlockAchievement]);
+  }, [currentCard, boss, bossHealth, maxHealth, lives, streak, currentEvent, hasShield, recordCardAnswer, currentCardIndex, handleVictory]);
 
   const restartBattle = () => {
     if (!boss || religionCards.length === 0) return;
@@ -255,7 +264,6 @@ export default function BossPage() {
     setHasShield(false);
     setEventMessage(null);
     setShowCritical(false);
-    setTotalDamageDealt(0);
   };
 
   if (!mounted) {
@@ -277,15 +285,6 @@ export default function BossPage() {
     );
   }
 
-  const getReligionColor = () => {
-    switch (boss.religion) {
-      case 'judaism': return 'from-blue-600 to-blue-800';
-      case 'christianity': return 'from-yellow-600 to-orange-700';
-      case 'islam': return 'from-green-600 to-green-800';
-      case 'shared': return 'from-purple-600 to-purple-800';
-    }
-  };
-
   const healthPercent = maxHealth > 0 ? (bossHealth / maxHealth) * 100 : 0;
   const nextLevel = getNextLevel(boss.levelId);
 
@@ -301,6 +300,7 @@ export default function BossPage() {
       <AnimatePresence>
         {showHit && (
           <motion.div
+            key="hit"
             initial={{ x: 0 }}
             animate={{ x: [0, -10, 10, -10, 10, 0] }}
             transition={{ duration: 0.3 }}
@@ -313,6 +313,7 @@ export default function BossPage() {
       <AnimatePresence>
         {showCritical && (
           <motion.div
+            key="critical"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -341,6 +342,7 @@ export default function BossPage() {
       <AnimatePresence>
         {eventMessage && (
           <motion.div
+            key="event-message"
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
@@ -575,6 +577,9 @@ export default function BossPage() {
               correctStreak={getCardProgress(currentCard.id).correctStreak}
               sessionStreak={streak}
               onAnswer={handleAnswer}
+              hasDoubleMasteryBonus={hasReward('doubleMasteryXP')}
+              hasSpeedBonusReward={hasReward('speedBonus')}
+              isShieldAvailable={isShieldAvailable()}
             />
           </div>
         )}

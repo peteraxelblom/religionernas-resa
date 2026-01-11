@@ -2,11 +2,11 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { SavedGameData, LevelProgress, GameStats } from '@/types/progress';
+import { SavedGameData, LevelProgress } from '@/types/progress';
 import { CardProgress, CardBucket } from '@/types/card';
 import { createDefaultSaveData, shouldContinueStreak, isNewDay } from '@/lib/storage';
 import { createInitialCardProgress, updateCardProgress, isDueForReview } from '@/lib/spacedRepetition';
-import { calculatePlayerLevel, PlayerLevel, applyXPBoost, applyMasteryBonus, hasRewardEffect } from '@/lib/playerLevel';
+import { calculatePlayerLevel, PlayerLevel, applyXPBoost, applyMasteryBonus, calculateSpeedBonus, hasRewardEffect } from '@/lib/playerLevel';
 
 interface GameState extends SavedGameData {
   // Session state (not persisted)
@@ -16,6 +16,11 @@ interface GameState extends SavedGameData {
 
   // Daily challenge tracking (persisted)
   dailyChallengeCompletions: Record<string, string>; // challengeId -> date completed
+
+  // Streak Shield state (persisted - resets daily)
+  shieldUsedToday: boolean;
+  shieldLastUsedDate: string | null; // ISO date string to track when to reset
+  lastShieldActivation: boolean; // True if shield just activated (for UI feedback)
 
   // Actions
   initGame: (playerName?: string) => void;
@@ -51,6 +56,10 @@ interface GameState extends SavedGameData {
   // Player Level
   getPlayerLevel: () => PlayerLevel;
   hasReward: (effect: 'freeHintPerLevel' | 'streakShield' | 'xpBoost10' | 'bossExtraLife' | 'doubleMasteryXP' | 'speedBonus') => boolean;
+
+  // Streak Shield
+  isShieldAvailable: () => boolean; // Shield unlocked AND not used today
+  clearShieldActivation: () => void; // Clear the lastShieldActivation flag after showing UI
 
   // Stats
   addXP: (amount: number) => void;
@@ -100,6 +109,11 @@ export const useGameStore = create<GameState>()(
       sessionStartTime: null,
       newlyUnlockedAchievement: null,
       dailyChallengeCompletions: {},
+
+      // Streak Shield state
+      shieldUsedToday: false,
+      shieldLastUsedDate: null,
+      lastShieldActivation: false,
 
       // Actions
       initGame: (playerName = 'Astor') => {
@@ -168,7 +182,7 @@ export const useGameStore = create<GameState>()(
 
       // Card progress
       recordCardAnswer: (cardId, correct, responseTimeMs) => {
-        const MASTERY_XP_BONUS = 25; // XP awarded when card reaches mastered bucket
+        const BASE_MASTERY_XP = 25; // Base XP awarded when card reaches mastered bucket
 
         set((state) => {
           const existing = state.cardProgress[cardId] || createInitialCardProgress(cardId);
@@ -177,13 +191,57 @@ export const useGameStore = create<GameState>()(
           // Check if card just became mastered (bucket transition)
           const justMastered = updated.bucket === 'mastered' && existing.bucket !== 'mastered';
 
-          // Update stats (including XP for mastery)
+          // Apply mastery bonus if player has unlocked it (level 12+)
+          const playerLevel = calculatePlayerLevel(state.stats.totalXP);
+          const masteryXP = justMastered
+            ? applyMasteryBonus(BASE_MASTERY_XP, playerLevel.level)
+            : 0;
+
+          // Calculate speed bonus for fast correct answers on known cards (Level 20+)
+          const speedBonusResult = correct
+            ? calculateSpeedBonus(0, playerLevel.level, responseTimeMs, existing.bucket)
+            : { bonusXP: 0, wasSpeedBonus: false };
+
+          // Total XP from this answer
+          const totalBonusXP = masteryXP + speedBonusResult.bonusXP;
+
+          // Update stats (including XP for mastery and speed bonus)
           const newStats = {
             ...state.stats,
             totalCardsAnswered: state.stats.totalCardsAnswered + 1,
             totalCorrect: correct ? state.stats.totalCorrect + 1 : state.stats.totalCorrect,
-            totalXP: justMastered ? state.stats.totalXP + MASTERY_XP_BONUS : state.stats.totalXP,
+            totalXP: state.stats.totalXP + totalBonusXP,
           };
+
+          // Check if shield should activate (wrong answer with streak, shield available)
+          const today = new Date().toISOString().split('T')[0];
+          const shieldIsAvailable =
+            hasRewardEffect(playerLevel.level, 'streakShield') &&
+            !state.shieldUsedToday &&
+            state.shieldLastUsedDate !== today;
+
+          const shouldUseShield =
+            !correct &&
+            state.currentStreak > 0 &&
+            shieldIsAvailable;
+
+          // Calculate new streak (preserved if shield activates)
+          let newStreak: number;
+          let shieldActivated = false;
+          let shieldUsed = state.shieldUsedToday;
+          let shieldDate = state.shieldLastUsedDate;
+
+          if (correct) {
+            newStreak = state.currentStreak + 1;
+          } else if (shouldUseShield) {
+            // Shield protects the streak!
+            newStreak = state.currentStreak;
+            shieldActivated = true;
+            shieldUsed = true;
+            shieldDate = today;
+          } else {
+            newStreak = 0;
+          }
 
           return {
             cardProgress: {
@@ -191,7 +249,10 @@ export const useGameStore = create<GameState>()(
               [cardId]: updated,
             },
             stats: newStats,
-            currentStreak: correct ? state.currentStreak + 1 : 0,
+            currentStreak: newStreak,
+            shieldUsedToday: shieldUsed,
+            shieldLastUsedDate: shieldDate,
+            lastShieldActivation: shieldActivated,
           };
         });
 
@@ -324,6 +385,22 @@ export const useGameStore = create<GameState>()(
       hasReward: (effect) => {
         const playerLevel = calculatePlayerLevel(get().stats.totalXP);
         return hasRewardEffect(playerLevel.level, effect);
+      },
+
+      // Streak Shield
+      isShieldAvailable: () => {
+        const state = get();
+        const playerLevel = calculatePlayerLevel(state.stats.totalXP);
+        const today = new Date().toISOString().split('T')[0];
+        return (
+          hasRewardEffect(playerLevel.level, 'streakShield') &&
+          !state.shieldUsedToday &&
+          state.shieldLastUsedDate !== today
+        );
+      },
+
+      clearShieldActivation: () => {
+        set({ lastShieldActivation: false });
       },
 
       // Stats
@@ -461,6 +538,9 @@ export const useGameStore = create<GameState>()(
         stats: state.stats,
         settings: state.settings,
         dailyChallengeCompletions: state.dailyChallengeCompletions,
+        // Streak Shield state (resets daily via shieldLastUsedDate comparison)
+        shieldUsedToday: state.shieldUsedToday,
+        shieldLastUsedDate: state.shieldLastUsedDate,
       }),
     }
   )

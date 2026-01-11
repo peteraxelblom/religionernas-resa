@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardBucket } from '@/types/card';
 import { getBucketLabel } from '@/lib/spacedRepetition';
@@ -17,6 +17,9 @@ interface FlashCardProps {
   onAnswer: (correct: boolean, responseTimeMs: number) => void;
   showResult?: boolean;
   forceShowHint?: boolean; // Flow state adaptive hint (show hint even before answering)
+  hasDoubleMasteryBonus?: boolean; // Player has Level 12+ reward for 2x mastery XP
+  hasSpeedBonusReward?: boolean; // Player has Level 20+ reward for speed bonus
+  isShieldAvailable?: boolean; // Streak shield available for use
 }
 
 export default function FlashCard({
@@ -25,14 +28,17 @@ export default function FlashCard({
   correctStreak,
   sessionStreak,
   onAnswer,
-  showResult = false,
   forceShowHint = false,
+  hasDoubleMasteryBonus = false,
+  hasSpeedBonusReward = false,
+  isShieldAvailable = false,
 }: FlashCardProps) {
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [, setIsFlipped] = useState(false); // isFlipped tracked for state management
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [userInput, setUserInput] = useState('');
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [startTime] = useState(Date.now());
+  // eslint-disable-next-line react-hooks/purity -- Ref initialization, only runs once
+  const startTimeRef = useRef(Date.now());
   const [feedbackMessage, setFeedbackMessage] = useState<{
     title: string;
     subtitle?: string;
@@ -61,6 +67,7 @@ export default function FlashCard({
     setUserInput('');
     setIsCorrect(null);
     setFeedbackMessage(null);
+    startTimeRef.current = Date.now();
   }, [card.id]);
 
   const checkAnswer = (answer: string): boolean => {
@@ -115,10 +122,21 @@ export default function FlashCard({
   const handleAnswer = (answer: string) => {
     if (isCorrect !== null) return; // Already answered
 
-    const responseTime = Date.now() - startTime;
+    // eslint-disable-next-line react-hooks/purity -- Event handler, not during render
+    const responseTime = Date.now() - startTimeRef.current;
     const correct = checkAnswer(answer);
     const newBucket = predictNewBucket(correct);
     const newSessionStreak = correct ? sessionStreak + 1 : 0;
+
+    // Calculate if speed bonus applies (Level 20+ reward, fast answer, known card)
+    const SPEED_THRESHOLD_MS = 3000;
+    const speedBonusApplies = hasSpeedBonusReward &&
+      correct &&
+      responseTime < SPEED_THRESHOLD_MS &&
+      (bucket === 'reviewing' || bucket === 'mastered');
+
+    // Check if shield will activate (wrong answer + had streak + shield available)
+    const shieldWillActivate = !correct && sessionStreak > 0 && isShieldAvailable;
 
     // Generate contextual feedback message
     const context: FeedbackContext = {
@@ -129,6 +147,9 @@ export default function FlashCard({
       newBucket,
       userAnswer: card.type === 'basic' || card.type === 'fill_blank' ? answer : undefined,
       correctAnswer: card.answer,
+      hasDoubleMasteryBonus,
+      hasSpeedBonus: speedBonusApplies,
+      shieldActivated: shieldWillActivate,
     };
 
     const feedback = getFeedbackMessage(context);
@@ -341,6 +362,7 @@ export default function FlashCard({
           <AnimatePresence>
             {isCorrect !== null && feedbackMessage && (
               <motion.div
+                key="feedback"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}

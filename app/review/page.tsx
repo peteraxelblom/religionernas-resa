@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
-import { allCards, getCardById } from '@/data/cards';
+import { getCardById } from '@/data/cards';
 import FlashCard from '@/components/cards/FlashCard';
 import { Card } from '@/types/card';
 import { playStreakSound, playLevelCompleteSound } from '@/lib/audio';
@@ -14,14 +13,14 @@ import { STRINGS } from '@/lib/strings/sv';
 const REVIEW_XP_BONUS = 50; // XP bonus for completing a review session
 
 export default function ReviewPage() {
-  const router = useRouter();
   const {
     getDueCardIds,
     recordCardAnswer,
     getCardBucket,
     getCardProgress,
     addXP,
-    cardProgress,
+    hasReward,
+    isShieldAvailable,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -35,6 +34,18 @@ export default function ReviewPage() {
   // Stable shuffle seed - changes each time review is started
   const [shuffleSeed] = useState(() => Math.random());
 
+  // Pre-computed confetti properties for stable rendering
+  const [confettiProps] = useState(() =>
+    [...Array(30)].map(() => ({
+      x: Math.random(),
+      rotate: Math.random() * 720 - 360,
+      duration: 3 + Math.random() * 2,
+      delay: Math.random() * 0.5,
+      colorIndex: Math.floor(Math.random() * 5),
+      isCircle: Math.random() > 0.5,
+    }))
+  );
+
   // Get due cards - shuffled to prevent learning order instead of content
   const dueCards = useMemo(() => {
     const dueCardIds = getDueCardIds();
@@ -47,14 +58,25 @@ export default function ReviewPage() {
       .map((card, i) => ({ card, sort: Math.sin(shuffleSeed * 1000 + i) }))
       .sort((a, b) => a.sort - b.sort)
       .map(({ card }) => card);
-  }, [getDueCardIds, cardProgress, shuffleSeed]); // Re-compute when cardProgress changes
+  }, [getDueCardIds, shuffleSeed]);
 
   const currentCard = dueCards[currentCardIndex];
   const progress = dueCards.length > 0 ? (currentCardIndex / dueCards.length) * 100 : 0;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
   }, []);
+
+  const finishReview = useCallback(() => {
+    // Award XP bonus for completing review
+    addXP(REVIEW_XP_BONUS);
+
+    // Show celebration
+    playLevelCompleteSound();
+    setShowConfetti(true);
+    setReviewComplete(true);
+  }, [addXP]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard) return;
@@ -86,17 +108,7 @@ export default function ReviewPage() {
         finishReview();
       }
     }, 1800);
-  }, [currentCard, currentCardIndex, dueCards.length, streak, recordCardAnswer]);
-
-  const finishReview = useCallback(() => {
-    // Award XP bonus for completing review
-    addXP(REVIEW_XP_BONUS);
-
-    // Show celebration
-    playLevelCompleteSound();
-    setShowConfetti(true);
-    setReviewComplete(true);
-  }, [addXP]);
+  }, [currentCard, currentCardIndex, dueCards.length, streak, recordCardAnswer, finishReview]);
 
   const getStreakMessage = (s: number) => {
     if (s >= 10) return 'OTROLIGT!';
@@ -164,33 +176,32 @@ export default function ReviewPage() {
       <AnimatePresence>
         {showConfetti && (
           <motion.div
+            key="confetti"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="fixed inset-0 pointer-events-none z-50 overflow-hidden"
           >
-            {[...Array(30)].map((_, i) => (
+            {confettiProps.map((props, i) => (
               <motion.div
                 key={i}
                 initial={{
                   y: -20,
-                  x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 400),
+                  x: props.x * (typeof window !== 'undefined' ? window.innerWidth : 400),
                   rotate: 0,
                 }}
                 animate={{
                   y: typeof window !== 'undefined' ? window.innerHeight + 100 : 800,
-                  rotate: Math.random() * 720 - 360,
+                  rotate: props.rotate,
                 }}
                 transition={{
-                  duration: 3 + Math.random() * 2,
-                  delay: Math.random() * 0.5,
+                  duration: props.duration,
+                  delay: props.delay,
                   ease: 'easeIn',
                 }}
                 className="absolute w-4 h-4"
                 style={{
-                  backgroundColor: ['#fcd34d', '#a78bfa', '#34d399', '#f472b6', '#60a5fa'][
-                    Math.floor(Math.random() * 5)
-                  ],
-                  borderRadius: Math.random() > 0.5 ? '50%' : '0%',
+                  backgroundColor: ['#fcd34d', '#a78bfa', '#34d399', '#f472b6', '#60a5fa'][props.colorIndex],
+                  borderRadius: props.isCircle ? '50%' : '0%',
                 }}
               />
             ))}
@@ -202,6 +213,7 @@ export default function ReviewPage() {
       <AnimatePresence>
         {showStreak && (
           <motion.div
+            key="streak"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -330,6 +342,9 @@ export default function ReviewPage() {
               correctStreak={getCardProgress(currentCard.id).correctStreak}
               sessionStreak={streak}
               onAnswer={handleAnswer}
+              hasDoubleMasteryBonus={hasReward('doubleMasteryXP')}
+              hasSpeedBonusReward={hasReward('speedBonus')}
+              isShieldAvailable={isShieldAvailable()}
             />
           )
         )}

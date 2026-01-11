@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
 import {
@@ -27,7 +26,6 @@ import { STRINGS } from '@/lib/strings/sv';
 type GamePhase = 'menu' | 'playing' | 'complete' | 'failed';
 
 export default function DailyChallengesPage() {
-  const router = useRouter();
   const {
     stats,
     addXP,
@@ -39,6 +37,8 @@ export default function DailyChallengesPage() {
     completeDailyChallenge,
     isDailyChallengeCompleted,
     getDailyCompletionCount,
+    hasReward,
+    isShieldAvailable,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -61,6 +61,7 @@ export default function DailyChallengesPage() {
   const currentCard = cards[currentCardIndex];
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
   }, []);
 
@@ -89,6 +90,37 @@ export default function DailyChallengesPage() {
     setRecentAnswers([]);
     setPhase('playing');
   }, [cardProgress, flowState]);
+
+  const finishChallenge = useCallback((lastCorrect: boolean) => {
+    if (!selectedChallenge || !startTime) return;
+
+    const endTime = Date.now();
+    setTotalTime(endTime - startTime);
+
+    // Check if challenge was successful
+    const finalCorrect = correctCount + (lastCorrect ? 1 : 0);
+    const success = selectedChallenge.type === 'perfect_streak'
+      ? finalCorrect === selectedChallenge.targetCount
+      : finalCorrect >= Math.ceil(selectedChallenge.targetCount * 0.7); // 70% to pass
+
+    if (success) {
+      playLevelCompleteSound();
+      addXP(selectedChallenge.bonusXP);
+
+      // Mark challenge as completed in game store
+      completeDailyChallenge(selectedChallenge.id);
+
+      // Check for achievement
+      const completedToday = getDailyCompletionCount() + 1;
+      if (completedToday >= 4) {
+        unlockAchievement('daily-champion');
+      }
+
+      setPhase('complete');
+    } else {
+      setPhase('failed');
+    }
+  }, [selectedChallenge, startTime, correctCount, addXP, completeDailyChallenge, getDailyCompletionCount, unlockAchievement]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard || !selectedChallenge) return;
@@ -140,38 +172,7 @@ export default function DailyChallengesPage() {
         finishChallenge(correct);
       }
     }, 1500);
-  }, [currentCard, selectedChallenge, streak, currentCardIndex, cards.length, recordCardAnswer, recentAnswers]);
-
-  const finishChallenge = useCallback((lastCorrect: boolean) => {
-    if (!selectedChallenge || !startTime) return;
-
-    const endTime = Date.now();
-    setTotalTime(endTime - startTime);
-
-    // Check if challenge was successful
-    const finalCorrect = correctCount + (lastCorrect ? 1 : 0);
-    const success = selectedChallenge.type === 'perfect_streak'
-      ? finalCorrect === selectedChallenge.targetCount
-      : finalCorrect >= Math.ceil(selectedChallenge.targetCount * 0.7); // 70% to pass
-
-    if (success) {
-      playLevelCompleteSound();
-      addXP(selectedChallenge.bonusXP);
-
-      // Mark challenge as completed in game store
-      completeDailyChallenge(selectedChallenge.id);
-
-      // Check for achievement
-      const completedToday = getDailyCompletionCount() + 1;
-      if (completedToday >= 4) {
-        unlockAchievement('daily-champion');
-      }
-
-      setPhase('complete');
-    } else {
-      setPhase('failed');
-    }
-  }, [selectedChallenge, startTime, correctCount, addXP, completeDailyChallenge, getDailyCompletionCount, unlockAchievement]);
+  }, [currentCard, selectedChallenge, streak, currentCardIndex, cards.length, recordCardAnswer, recentAnswers, finishChallenge]);
 
   const resetToMenu = () => {
     setPhase('menu');
@@ -336,6 +337,9 @@ export default function DailyChallengesPage() {
                 cardProgress[currentCard.id],
                 getAdaptiveSettings(flowState)
               )}
+              hasDoubleMasteryBonus={hasReward('doubleMasteryXP')}
+              hasSpeedBonusReward={hasReward('speedBonus')}
+              isShieldAvailable={isShieldAvailable()}
             />
           </div>
         )}
@@ -360,7 +364,7 @@ export default function DailyChallengesPage() {
               Utmaning klar!
             </h2>
             <p className="text-gray-600 mb-6">
-              Du klarade "{selectedChallenge.name}"
+              Du klarade &quot;{selectedChallenge.name}&quot;
             </p>
 
             {/* Stats */}

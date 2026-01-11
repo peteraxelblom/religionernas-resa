@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Level } from '@/types/level';
-import { getLevelById } from '@/data/levels';
 
 interface MasteryProgress {
   mastered: number;

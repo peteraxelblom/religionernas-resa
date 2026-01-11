@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
 import {
-  allCards,
   getCardsByReligion,
   getCardsByReligionAndCategory,
   getCategoriesByReligion,
@@ -44,11 +43,12 @@ const religionConfig: Record<Religion, { displayName: string; icon: string; colo
 };
 
 export default function StatsPage() {
-  const { stats, getCategoryMastery, getOverallMasteryStats, cardProgress, levelProgress } = useGameStore();
+  const { stats, getCategoryMastery, getOverallMasteryStats, levelProgress } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [selectedReligion, setSelectedReligion] = useState<Religion | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
   }, []);
 
@@ -188,7 +188,7 @@ export default function StatsPage() {
               Dessa områden behöver lite extra övning
             </p>
             <div className="space-y-3">
-              {weakAreas.map((area, index) => (
+              {weakAreas.map((area) => (
                 <div
                   key={`${area.religion}-${area.category}`}
                   className="flex items-center justify-between bg-white/50 rounded-lg p-3"

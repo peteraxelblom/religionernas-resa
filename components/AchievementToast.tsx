@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { getAchievementById } from '@/data/achievements';
@@ -9,37 +9,48 @@ import { playAchievementSound } from '@/lib/audio';
 export default function AchievementToast() {
   const { newlyUnlockedAchievement, clearNewlyUnlockedAchievement } = useGameStore();
   const [visible, setVisible] = useState(false);
-  const [achievement, setAchievement] = useState<{
-    id: string;
-    nameSv: string;
-    description: string;
-    icon: string;
-  } | null>(null);
+  const lastProcessedRef = useRef<string | null>(null);
 
+  // Pre-computed sparkle positions for stable rendering
+  const [sparklePositions] = useState(() =>
+    [...Array(6)].map((_, i) => ({
+      left: 10 + i * 15,
+      top: Math.random() * 100,
+    }))
+  );
+
+  // Derive achievement data from the store value
+  const achievement = useMemo(() => {
+    if (!newlyUnlockedAchievement) return null;
+    const data = getAchievementById(newlyUnlockedAchievement);
+    if (!data) return null;
+    return {
+      id: data.id,
+      nameSv: data.nameSv,
+      description: data.description,
+      icon: data.icon,
+    };
+  }, [newlyUnlockedAchievement]);
+
+  // Handle visibility and side effects when achievement changes
   useEffect(() => {
-    if (newlyUnlockedAchievement) {
-      const achievementData = getAchievementById(newlyUnlockedAchievement);
-      if (achievementData) {
-        setAchievement({
-          id: achievementData.id,
-          nameSv: achievementData.nameSv,
-          description: achievementData.description,
-          icon: achievementData.icon,
-        });
-        setVisible(true);
-        playAchievementSound();
+    if (newlyUnlockedAchievement && newlyUnlockedAchievement !== lastProcessedRef.current) {
+      lastProcessedRef.current = newlyUnlockedAchievement;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Responding to external state change
+      setVisible(true);
+      playAchievementSound();
 
-        // Auto-hide after 4 seconds
-        const timer = setTimeout(() => {
-          setVisible(false);
-          // Clear the state after animation completes
-          setTimeout(() => {
-            clearNewlyUnlockedAchievement();
-          }, 300);
-        }, 4000);
+      // Auto-hide after 4 seconds
+      const timer = setTimeout(() => {
+        setVisible(false);
+        // Clear the state after animation completes
+        setTimeout(() => {
+          clearNewlyUnlockedAchievement();
+          lastProcessedRef.current = null;
+        }, 300);
+      }, 4000);
 
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
   }, [newlyUnlockedAchievement, clearNewlyUnlockedAchievement]);
 
@@ -95,7 +106,7 @@ export default function AchievementToast() {
               </div>
 
               {/* Sparkles */}
-              {[...Array(6)].map((_, i) => (
+              {sparklePositions.map((pos, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, scale: 0 }}
@@ -111,8 +122,8 @@ export default function AchievementToast() {
                   }}
                   className="absolute w-2 h-2 bg-yellow-400 rounded-full"
                   style={{
-                    left: `${10 + i * 15}%`,
-                    top: `${Math.random() * 100}%`,
+                    left: `${pos.left}%`,
+                    top: `${pos.top}%`,
                     boxShadow: '0 0 8px #fbbf24',
                   }}
                 />

@@ -257,3 +257,33 @@ export function applyMasteryBonus(xp: number, playerLevel: number): number {
   }
   return xp;
 }
+
+/**
+ * Calculate speed bonus for fast answers on known cards
+ * Only applies to cards in 'reviewing' or 'mastered' bucket to prevent gaming
+ *
+ * @returns Object with bonus XP amount and whether bonus was applied
+ */
+export function calculateSpeedBonus(
+  baseXP: number,
+  playerLevel: number,
+  responseTimeMs: number,
+  cardBucket: string
+): { bonusXP: number; wasSpeedBonus: boolean } {
+  const SPEED_THRESHOLD_MS = 3000; // 3 seconds
+  const SPEED_BONUS_AMOUNT = 5; // Flat bonus for fast answers on known cards
+
+  // Only apply speed bonus if:
+  // 1. Player has unlocked the reward (Level 20+)
+  // 2. Answer was fast enough
+  // 3. Card is in reviewing or mastered bucket (player already knows it)
+  if (
+    hasRewardEffect(playerLevel, 'speedBonus') &&
+    responseTimeMs < SPEED_THRESHOLD_MS &&
+    (cardBucket === 'reviewing' || cardBucket === 'mastered')
+  ) {
+    return { bonusXP: SPEED_BONUS_AMOUNT, wasSpeedBonus: true };
+  }
+
+  return { bonusXP: 0, wasSpeedBonus: false };
+}

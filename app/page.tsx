@@ -10,11 +10,12 @@ import PlayerLevelCard from '@/components/PlayerLevelCard';
 import { STRINGS } from '@/lib/strings/sv';
 
 export default function Home() {
-  const { playerName, initGame, stats, levelProgress, getDueCardsCount, getMasteredCardsCount, resetGame } = useGameStore();
+  const { initGame, stats, levelProgress, getDueCardsCount, getMasteredCardsCount, resetGame } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
     initGame('Astor');
   }, [initGame]);

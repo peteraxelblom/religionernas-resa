@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlayerLevel, Reward, getRewardAtLevel, getTitleForLevel } from '@/lib/playerLevel';
+import { getRewardAtLevel, getTitleForLevel } from '@/lib/playerLevel';
 
 interface LevelUpModalProps {
   newLevel: number;
@@ -11,10 +11,7 @@ interface LevelUpModalProps {
 }
 
 // Simple confetti particle component
-function ConfettiParticle({ delay, color }: { delay: number; color: string }) {
-  const randomX = Math.random() * 100;
-  const randomRotate = Math.random() * 720 - 360;
-
+function ConfettiParticle({ delay, color, randomX, randomRotate }: { delay: number; color: string; randomX: number; randomRotate: number }) {
   return (
     <motion.div
       initial={{ y: -20, x: `${randomX}vw`, opacity: 1, rotate: 0 }}
@@ -43,6 +40,14 @@ export default function LevelUpModal({ newLevel, previousLevel, onClose }: Level
 
   const confettiColors = ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444'];
 
+  // Pre-computed confetti properties for stable rendering
+  const [confettiProps] = useState(() =>
+    Array.from({ length: 50 }).map(() => ({
+      randomX: Math.random() * 100,
+      randomRotate: Math.random() * 720 - 360,
+    }))
+  );
+
   useEffect(() => {
     // Auto-hide confetti after animation
     const timer = setTimeout(() => setShowConfetti(false), 3000);
@@ -63,11 +68,13 @@ export default function LevelUpModal({ newLevel, previousLevel, onClose }: Level
       {/* Confetti */}
       {showConfetti && (
         <>
-          {Array.from({ length: 50 }).map((_, i) => (
+          {confettiProps.map((props, i) => (
             <ConfettiParticle
               key={i}
               delay={i * 0.05}
               color={confettiColors[i % confettiColors.length]}
+              randomX={props.randomX}
+              randomRotate={props.randomRotate}
             />
           ))}
         </>

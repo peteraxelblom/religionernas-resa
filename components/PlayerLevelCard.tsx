@@ -9,7 +9,7 @@ interface PlayerLevelCardProps {
 }
 
 export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProps) {
-  const { getPlayerLevel, stats, playerName } = useGameStore();
+  const { getPlayerLevel, playerName } = useGameStore();
   const playerLevel = getPlayerLevel();
   const nextReward = getNextReward(playerLevel.level);
   const unlockedRewards = getUnlockedRewards(playerLevel.level);

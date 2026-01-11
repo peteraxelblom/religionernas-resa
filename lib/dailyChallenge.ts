@@ -31,7 +31,6 @@ function getTodaySeed(): number {
 // Get the daily challenges for today
 export function getDailyChallenges(): DailyChallenge[] {
   const seed = getTodaySeed();
-  const random = seededRandom(seed);
 
   // Rotate through religions based on day
   const religions: Religion[] = ['judaism', 'christianity', 'islam'];

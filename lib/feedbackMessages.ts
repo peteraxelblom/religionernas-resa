@@ -15,12 +15,16 @@ export interface FeedbackContext {
   newBucket: CardBucket;
   userAnswer?: string;
   correctAnswer?: string;
+  hasDoubleMasteryBonus?: boolean; // Player has Level 12+ reward
+  hasSpeedBonus?: boolean; // Player earned speed bonus (Level 20+ fast answer on known card)
+  shieldActivated?: boolean; // Shield protected the streak from breaking
 }
 
 export interface FeedbackMessage {
   title: string;
   subtitle?: string;
   isMastery?: boolean;
+  isShieldActivated?: boolean;
 }
 
 // Correct answer messages based on speed
@@ -80,13 +84,15 @@ function isNearMiss(userAnswer?: string, correctAnswer?: string): boolean {
 }
 
 export function getFeedbackMessage(context: FeedbackContext): FeedbackMessage {
-  const { correct, responseTimeMs, streak, previousBucket, newBucket, userAnswer, correctAnswer } = context;
+  const { correct, responseTimeMs, streak, previousBucket, newBucket, userAnswer, correctAnswer, hasDoubleMasteryBonus, hasSpeedBonus } = context;
 
   // Check for mastery celebration (Theory of Fun - "grokking")
   if (correct && newBucket === 'mastered' && previousBucket !== 'mastered') {
+    const xpAmount = hasDoubleMasteryBonus ? 50 : 25;
+    const bonusText = hasDoubleMasteryBonus ? ' (2x bonus!)' : '';
     return {
       title: pickRandom(MASTERY_MESSAGES),
-      subtitle: 'Du behärskar det här kortet! +25 XP',
+      subtitle: `Du behärskar det här kortet! +${xpAmount} XP${bonusText}`,
       isMastery: true,
     };
   }
@@ -95,23 +101,35 @@ export function getFeedbackMessage(context: FeedbackContext): FeedbackMessage {
     // Check streak first (higher priority)
     const streakThreshold = [10, 7, 5, 3].find(t => streak >= t);
     if (streakThreshold && STREAK_MESSAGES[streakThreshold]) {
+      const speedBonusText = hasSpeedBonus ? ' ⚡+5 XP' : '';
       return {
         title: pickRandom(STREAK_MESSAGES[streakThreshold]),
-        subtitle: `${streak} rätt i rad!`,
+        subtitle: `${streak} rätt i rad!${speedBonusText}`,
       };
     }
 
-    // Speed-based feedback
+    // Speed-based feedback with optional speed bonus
+    const speedBonusSubtitle = hasSpeedBonus ? '⚡ Snabbhetsbonus +5 XP!' : undefined;
+
     if (responseTimeMs < 2000) {
-      return { title: pickRandom(SPEED_MESSAGES.lightning) };
+      return { title: pickRandom(SPEED_MESSAGES.lightning), subtitle: speedBonusSubtitle };
     } else if (responseTimeMs < 4000) {
-      return { title: pickRandom(SPEED_MESSAGES.fast) };
+      return { title: pickRandom(SPEED_MESSAGES.fast), subtitle: speedBonusSubtitle };
     } else {
-      return { title: pickRandom(SPEED_MESSAGES.normal) };
+      return { title: pickRandom(SPEED_MESSAGES.normal), subtitle: speedBonusSubtitle };
     }
   }
 
-  // Wrong answer
+  // Wrong answer - check if shield activated
+  if (context.shieldActivated) {
+    return {
+      title: '🛡️ SKÖLDEN SKYDDADE!',
+      subtitle: 'Din streak är bevarad! Skölden är förbrukad idag.',
+      isShieldActivated: true,
+    };
+  }
+
+  // Regular wrong answer
   if (isNearMiss(userAnswer, correctAnswer)) {
     return {
       title: NEAR_MISS_MESSAGE,
