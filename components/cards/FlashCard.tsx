@@ -7,6 +7,7 @@ import { getBucketLabel } from '@/lib/spacedRepetition';
 import { playCorrectSound, playWrongSound, playMasterySound } from '@/lib/audio';
 import { isCorrect as checkAnswerMatch, GradingRule } from '@/lib/answerMatching';
 import { getFeedbackMessage, getBucketTransitionMessage, FeedbackContext } from '@/lib/feedbackMessages';
+import { STRINGS } from '@/lib/strings/sv';
 
 interface FlashCardProps {
   card: Card;
@@ -290,7 +291,7 @@ export default function FlashCard({
           </span>
           {correctStreak > 0 && (
             <span className="text-xs text-gray-500">
-              ({correctStreak} ratt i rad)
+              ({correctStreak} {STRINGS.CORRECT_IN_A_ROW})
             </span>
           )}
         </div>
@@ -419,7 +420,7 @@ export default function FlashCard({
 
                 {!isCorrect && (
                   <p className="text-gray-700">
-                    <span className="font-medium">Rätt svar: </span>
+                    <span className="font-medium">{STRINGS.CORRECT_ANSWER} </span>
                     <span className="text-green-700 font-bold">{card.answer}</span>
                   </p>
                 )}

@@ -4,13 +4,16 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
-import { levels, isLevelUnlocked } from '@/data/levels';
+import { levels, isLevelUnlocked, getLevelById } from '@/data/levels';
 import { Level } from '@/types/level';
 import { isLevelUnlockedAdvanced, getMasteryProgress } from '@/lib/unlockSystem';
+import LockedLevelModal from '@/components/LockedLevelModal';
+import { STRINGS } from '@/lib/strings/sv';
 
 export default function MapPage() {
   const { levelProgress, isLevelCompleted, cardProgress } = useGameStore();
   const [mounted, setMounted] = useState(false);
+  const [selectedLockedLevel, setSelectedLockedLevel] = useState<Level | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -19,7 +22,7 @@ export default function MapPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-2xl text-purple-600">Laddar karta...</div>
+        <div className="animate-pulse text-2xl text-purple-600">{STRINGS.LOADING_MAP}</div>
       </div>
     );
   }
@@ -124,7 +127,7 @@ export default function MapPage() {
                   {religionName}
                 </h2>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 auto-rows-fr">
                   {religionLevels.map((level, index) => {
                     const { isUnlocked, isCompleted, stars, masteryProgress, unlockMethod } = getLevelStatus(level);
                     const isCurrent = nextLevel?.id === level.id;
@@ -137,13 +140,14 @@ export default function MapPage() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.05 }}
+                        className="h-full"
                       >
                         {isUnlocked ? (
-                          <Link href={`/level/${level.id}`}>
+                          <Link href={`/level/${level.id}`} className="block h-full">
                             <div
                               className={`
                                 relative p-4 rounded-xl text-center cursor-pointer
-                                transition-all duration-200 hover:scale-105
+                                transition-all duration-200 hover:scale-105 h-full min-h-[130px]
                                 ${isCompleted
                                   ? 'bg-white shadow-md border-2 border-green-400'
                                   : isCurrent
@@ -202,11 +206,32 @@ export default function MapPage() {
                             </div>
                           </Link>
                         ) : (
-                          <div className={`p-4 rounded-xl text-center ${isComparison && masteryProgress ? 'bg-purple-50 border-2 border-purple-200' : 'bg-gray-100 opacity-50'}`}>
-                            <div className={`w-12 h-12 mx-auto mb-2 rounded-full flex items-center justify-center ${isComparison ? 'bg-purple-200 text-purple-600' : 'bg-gray-300 text-gray-500'}`}>
-                              {isComparison ? '🔮' : '🔒'}
+                          <button
+                            onClick={() => setSelectedLockedLevel(level)}
+                            className={`w-full p-4 rounded-xl text-center transition-all duration-200 hover:scale-105 cursor-pointer h-full min-h-[130px] ${
+                              isComparison && masteryProgress
+                                ? 'bg-purple-50 border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-100'
+                                : isBoss
+                                  ? 'bg-red-50 border-2 border-red-200 hover:border-red-300 hover:bg-red-100 opacity-70'
+                                  : 'bg-gray-100 border-2 border-transparent hover:border-gray-300 hover:bg-gray-200 opacity-60 hover:opacity-80'
+                            }`}
+                          >
+                            <div className={`w-12 h-12 mx-auto mb-2 rounded-full flex items-center justify-center ${
+                              isComparison
+                                ? 'bg-purple-200 text-purple-600'
+                                : isBoss
+                                  ? 'bg-red-200 text-red-600'
+                                  : 'bg-gray-300 text-gray-500'
+                            }`}>
+                              {isComparison ? '🔮' : isBoss ? '👹' : '🔒'}
                             </div>
-                            <h3 className={`font-medium text-sm ${isComparison ? 'text-purple-700' : 'text-gray-500'}`}>
+                            <h3 className={`font-medium text-sm ${
+                              isComparison
+                                ? 'text-purple-700'
+                                : isBoss
+                                  ? 'text-red-700'
+                                  : 'text-gray-500'
+                            }`}>
                               {level.name}
                             </h3>
                             {/* Show mastery progress for comparison levels */}
@@ -223,7 +248,9 @@ export default function MapPage() {
                                 </p>
                               </div>
                             )}
-                          </div>
+                            {/* Tap hint */}
+                            <p className="text-xs text-gray-400 mt-2">Tryck för info</p>
+                          </button>
                         )}
                       </motion.div>
                     );
@@ -248,6 +275,25 @@ export default function MapPage() {
               </button>
             </Link>
           </motion.div>
+        )}
+
+        {/* Locked level modal */}
+        {selectedLockedLevel && (
+          <LockedLevelModal
+            level={selectedLockedLevel}
+            masteryProgress={
+              selectedLockedLevel.masteryRequirement
+                ? getMasteryProgress(selectedLockedLevel.masteryRequirement, cardProgress)
+                : null
+            }
+            requiredLevelName={
+              selectedLockedLevel.requiredLevel
+                ? getLevelById(selectedLockedLevel.requiredLevel)?.name || null
+                : null
+            }
+            completedLevelsCount={completedLevelIds.length}
+            onClose={() => setSelectedLockedLevel(null)}
+          />
         )}
       </div>
     </main>

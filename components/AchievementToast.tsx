@@ -74,7 +74,7 @@ export default function AchievementToast() {
                   transition={{ delay: 0.3 }}
                   className="text-xs font-bold text-amber-600 uppercase tracking-wider"
                 >
-                  Prestation upplast!
+                  Prestation upplåst!
                 </motion.p>
                 <motion.h3
                   initial={{ opacity: 0, x: -10 }}

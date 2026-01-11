@@ -6,6 +6,7 @@ import { SavedGameData, LevelProgress, GameStats } from '@/types/progress';
 import { CardProgress, CardBucket } from '@/types/card';
 import { createDefaultSaveData, shouldContinueStreak, isNewDay } from '@/lib/storage';
 import { createInitialCardProgress, updateCardProgress, isDueForReview } from '@/lib/spacedRepetition';
+import { calculatePlayerLevel, PlayerLevel, applyXPBoost, applyMasteryBonus, hasRewardEffect } from '@/lib/playerLevel';
 
 interface GameState extends SavedGameData {
   // Session state (not persisted)
@@ -46,6 +47,10 @@ interface GameState extends SavedGameData {
   completeDailyChallenge: (challengeId: string) => void;
   isDailyChallengeCompleted: (challengeId: string) => boolean;
   getDailyCompletionCount: () => number;
+
+  // Player Level
+  getPlayerLevel: () => PlayerLevel;
+  hasReward: (effect: 'freeHintPerLevel' | 'streakShield' | 'xpBoost10' | 'bossExtraLife' | 'doubleMasteryXP' | 'speedBonus') => boolean;
 
   // Stats
   addXP: (amount: number) => void;
@@ -311,14 +316,29 @@ export const useGameStore = create<GameState>()(
         return Object.values(get().dailyChallengeCompletions).filter(d => d === today).length;
       },
 
+      // Player Level
+      getPlayerLevel: () => {
+        return calculatePlayerLevel(get().stats.totalXP);
+      },
+
+      hasReward: (effect) => {
+        const playerLevel = calculatePlayerLevel(get().stats.totalXP);
+        return hasRewardEffect(playerLevel.level, effect);
+      },
+
       // Stats
       addXP: (amount) => {
-        set((state) => ({
-          stats: {
-            ...state.stats,
-            totalXP: state.stats.totalXP + amount,
-          },
-        }));
+        set((state) => {
+          // Apply XP boost if player has unlocked it (level 6+)
+          const playerLevel = calculatePlayerLevel(state.stats.totalXP);
+          const boostedAmount = applyXPBoost(amount, playerLevel.level);
+          return {
+            stats: {
+              ...state.stats,
+              totalXP: state.stats.totalXP + boostedAmount,
+            },
+          };
+        });
       },
 
       incrementStreak: () => {

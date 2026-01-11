@@ -22,6 +22,7 @@ import {
   shouldShowHint,
   FlowState,
 } from '@/lib/adaptiveDifficulty';
+import { STRINGS } from '@/lib/strings/sv';
 
 type GamePhase = 'menu' | 'playing' | 'complete' | 'failed';
 
@@ -184,7 +185,7 @@ export default function DailyChallengesPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-2xl text-purple-600">Laddar...</div>
+        <div className="animate-pulse text-2xl text-purple-600">{STRINGS.LOADING}</div>
       </div>
     );
   }
@@ -366,19 +367,19 @@ export default function DailyChallengesPage() {
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="bg-purple-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-purple-600">{score}</div>
-                <div className="text-xs text-gray-500">Poang</div>
+                <div className="text-xs text-gray-500">{STRINGS.POINTS}</div>
               </div>
               <div className="bg-green-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-green-600">
                   {correctCount}/{cards.length}
                 </div>
-                <div className="text-xs text-gray-500">Ratt</div>
+                <div className="text-xs text-gray-500">{STRINGS.CORRECT}</div>
               </div>
               <div className="bg-yellow-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-yellow-600">
                   +{selectedChallenge.bonusXP}
                 </div>
-                <div className="text-xs text-gray-500">Bonus XP</div>
+                <div className="text-xs text-gray-500">{STRINGS.BONUS_XP}</div>
               </div>
             </div>
 
@@ -387,7 +388,7 @@ export default function DailyChallengesPage() {
                 <div className="text-2xl font-bold text-blue-600">
                   {Math.round(totalTime / 1000)}s
                 </div>
-                <div className="text-sm text-blue-500">Total tid</div>
+                <div className="text-sm text-blue-500">{STRINGS.TOTAL_TIME}</div>
               </div>
             )}
 
@@ -400,7 +401,7 @@ export default function DailyChallengesPage() {
               </button>
               <Link href="/">
                 <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90">
-                  Till startsidan
+                  {STRINGS.TO_HOME}
                 </button>
               </Link>
             </div>
@@ -423,24 +424,24 @@ export default function DailyChallengesPage() {
             </motion.div>
 
             <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              Nastan!
+              {STRINGS.ALMOST_THERE}
             </h2>
             <p className="text-gray-600 mb-6">
               {selectedChallenge.type === 'perfect_streak'
-                ? 'Du maste klara alla kort utan fel.'
-                : 'Forsok igen for att klara utmaningen!'}
+                ? 'Du måste klara alla kort utan fel.'
+                : 'Försök igen för att klara utmaningen!'}
             </p>
 
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-purple-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-purple-600">{score}</div>
-                <div className="text-xs text-gray-500">Poang</div>
+                <div className="text-xs text-gray-500">{STRINGS.POINTS}</div>
               </div>
               <div className="bg-green-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-green-600">
                   {correctCount}/{cards.length}
                 </div>
-                <div className="text-xs text-gray-500">Ratt</div>
+                <div className="text-xs text-gray-500">{STRINGS.CORRECT}</div>
               </div>
             </div>
 
@@ -449,13 +450,13 @@ export default function DailyChallengesPage() {
                 onClick={() => startChallenge(selectedChallenge)}
                 className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold rounded-xl hover:opacity-90"
               >
-                Forsok igen
+                {STRINGS.RETRY}
               </button>
               <button
                 onClick={resetToMenu}
                 className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300"
               >
-                Tillbaka
+                {STRINGS.BACK}
               </button>
             </div>
           </motion.div>

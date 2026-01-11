@@ -9,6 +9,7 @@ import { allCards, getCardById } from '@/data/cards';
 import FlashCard from '@/components/cards/FlashCard';
 import { Card } from '@/types/card';
 import { playStreakSound, playLevelCompleteSound } from '@/lib/audio';
+import { STRINGS } from '@/lib/strings/sv';
 
 const REVIEW_XP_BONUS = 50; // XP bonus for completing a review session
 
@@ -99,7 +100,7 @@ export default function ReviewPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-2xl text-purple-600">Laddar...</div>
+        <div className="animate-pulse text-2xl text-purple-600">{STRINGS.LOADING}</div>
       </div>
     );
   }
@@ -131,7 +132,7 @@ export default function ReviewPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/">
                 <button className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity">
-                  Till startsidan
+                  {STRINGS.TO_HOME}
                 </button>
               </Link>
               <Link href="/map">
@@ -235,7 +236,7 @@ export default function ReviewPage() {
 
           <div className="text-right">
             <div className="text-lg font-bold text-amber-600">{correctCount}/{dueCards.length}</div>
-            <div className="text-xs text-gray-500">ratt</div>
+            <div className="text-xs text-gray-500">{STRINGS.CORRECT}</div>
           </div>
         </div>
 
@@ -282,18 +283,18 @@ export default function ReviewPage() {
             </h2>
 
             <p className="text-gray-600 mb-6">
-              Du har repeterat {dueCards.length} kort och fatt +{REVIEW_XP_BONUS} XP bonus!
+              Du har repeterat {dueCards.length} kort och fått +{REVIEW_XP_BONUS} XP bonus!
             </p>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-8 max-w-sm mx-auto">
               <div className="bg-green-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-green-600">{correctCount}/{dueCards.length}</div>
-                <div className="text-xs text-gray-500">Ratt</div>
+                <div className="text-xs text-gray-500">{STRINGS.CORRECT}</div>
               </div>
               <div className="bg-orange-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-orange-600">{accuracy}%</div>
-                <div className="text-xs text-gray-500">Noggrannhet</div>
+                <div className="text-xs text-gray-500">{STRINGS.ACCURACY}</div>
               </div>
             </div>
 
@@ -301,7 +302,7 @@ export default function ReviewPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/">
                 <button className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity">
-                  Till startsidan
+                  {STRINGS.TO_HOME}
                 </button>
               </Link>
               <Link href="/map">

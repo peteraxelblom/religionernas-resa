@@ -18,6 +18,8 @@ import {
   getBossDifficultyModifier,
   sortBossCards,
 } from '@/lib/bossMechanics';
+import { hasRewardEffect } from '@/lib/playerLevel';
+import { STRINGS } from '@/lib/strings/sv';
 
 export default function BossPage() {
   const params = useParams();
@@ -31,6 +33,7 @@ export default function BossPage() {
     getCardProgress,
     unlockAchievement,
     cardProgress,
+    getPlayerLevel,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -99,9 +102,13 @@ export default function BossPage() {
       const adjustedHealth = Math.round(boss.health * difficulty.healthModifier);
       setBossHealth(adjustedHealth);
       setMaxHealth(adjustedHealth);
-      setLives(boss.lives);
+
+      // Check for extra life reward (level 8+)
+      const playerLevel = getPlayerLevel();
+      const hasExtraLife = hasRewardEffect(playerLevel.level, 'bossExtraLife');
+      setLives(hasExtraLife ? 4 : boss.lives);
     }
-  }, [boss, cardProgress, religionCards]);
+  }, [boss, cardProgress, religionCards, getPlayerLevel]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard || !boss) return;
@@ -230,10 +237,14 @@ export default function BossPage() {
     );
     const adjustedHealth = Math.round(boss.health * difficulty.healthModifier);
 
+    // Check for extra life reward (level 8+)
+    const playerLevel = getPlayerLevel();
+    const hasExtraLife = hasRewardEffect(playerLevel.level, 'bossExtraLife');
+
     setCurrentCardIndex(0);
     setBossHealth(adjustedHealth);
     setMaxHealth(adjustedHealth);
-    setLives(boss.lives);
+    setLives(hasExtraLife ? 4 : boss.lives);
     setScore(0);
     setStreak(0);
     setGameOver(false);
@@ -250,7 +261,7 @@ export default function BossPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
-        <div className="animate-pulse text-2xl text-purple-400">Laddar boss...</div>
+        <div className="animate-pulse text-2xl text-purple-400">{STRINGS.LOADING_BOSS}</div>
       </div>
     );
   }
@@ -260,7 +271,7 @@ export default function BossPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-2xl text-red-400">Bossen hittades inte</div>
         <Link href="/map" className="text-purple-400 underline">
-          Tillbaka till kartan
+          {STRINGS.BACK_TO_MAP}
         </Link>
       </div>
     );
@@ -359,7 +370,7 @@ export default function BossPage() {
 
           <div className="text-right">
             <div className="text-2xl font-bold text-yellow-400">{score}</div>
-            <div className="text-xs text-purple-300">poäng</div>
+            <div className="text-xs text-purple-300">{STRINGS.POINTS}</div>
           </div>
         </div>
 
@@ -401,7 +412,8 @@ export default function BossPage() {
         {/* Lives and Shield (Phase 3) */}
         <div className="flex justify-center items-center gap-4 mb-6">
           <div className="flex gap-2">
-            {[...Array(3)].map((_, i) => (
+            {/* Show 4 hearts if player has extra life reward, otherwise 3 */}
+            {[...Array(hasRewardEffect(getPlayerLevel().level, 'bossExtraLife') ? 4 : 3)].map((_, i) => (
               <motion.span
                 key={i}
                 animate={i >= lives ? { scale: [1, 0] } : {}}
@@ -483,7 +495,7 @@ export default function BossPage() {
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-black/30 rounded-xl p-4">
                 <div className="text-2xl font-bold text-yellow-400">{score}</div>
-                <div className="text-xs text-yellow-200/70">Poäng</div>
+                <div className="text-xs text-yellow-200/70">{STRINGS.POINTS}</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
                 <div className="text-2xl font-bold text-red-400">{3 - lives}</div>
@@ -494,7 +506,7 @@ export default function BossPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/map">
                 <button className="w-full sm:w-auto px-6 py-3 bg-gray-700 text-white font-bold rounded-xl hover:bg-gray-600 transition-colors">
-                  Till kartan
+                  {STRINGS.TO_MAP}
                 </button>
               </Link>
               {nextLevel && (
@@ -541,14 +553,14 @@ export default function BossPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/map">
                 <button className="w-full sm:w-auto px-6 py-3 bg-gray-700 text-white font-bold rounded-xl hover:bg-gray-600 transition-colors">
-                  Till kartan
+                  {STRINGS.TO_MAP}
                 </button>
               </Link>
               <button
                 onClick={restartBattle}
                 className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
               >
-                Försök igen
+                {STRINGS.RETRY}
               </button>
             </div>
           </motion.div>

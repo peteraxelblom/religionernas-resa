@@ -12,6 +12,7 @@ import {
   categoryDisplayNames,
 } from '@/data/cards';
 import { Religion } from '@/types/card';
+import { STRINGS } from '@/lib/strings/sv';
 
 interface CategoryStats {
   category: string;
@@ -119,7 +120,7 @@ export default function StatsPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-2xl text-purple-600">Laddar...</div>
+        <div className="animate-pulse text-2xl text-purple-600">{STRINGS.LOADING}</div>
       </div>
     );
   }

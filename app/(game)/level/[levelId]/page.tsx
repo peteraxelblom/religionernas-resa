@@ -20,6 +20,7 @@ import {
   shouldShowHint,
   FlowState,
 } from '@/lib/adaptiveDifficulty';
+import { STRINGS } from '@/lib/strings/sv';
 
 export default function LevelPage() {
   const params = useParams();
@@ -166,7 +167,7 @@ export default function LevelPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-2xl text-purple-600">Laddar nivå...</div>
+        <div className="animate-pulse text-2xl text-purple-600">{STRINGS.LOADING_LEVEL}</div>
       </div>
     );
   }
@@ -176,7 +177,7 @@ export default function LevelPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <div className="text-2xl text-red-500">Nivån hittades inte</div>
         <Link href="/map" className="text-purple-600 underline">
-          Tillbaka till kartan
+          {STRINGS.BACK_TO_MAP}
         </Link>
       </div>
     );
@@ -187,7 +188,7 @@ export default function LevelPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <div className="text-2xl text-orange-500">Inga kort i denna nivå ännu</div>
         <Link href="/map" className="text-purple-600 underline">
-          Tillbaka till kartan
+          {STRINGS.BACK_TO_MAP}
         </Link>
       </div>
     );
@@ -319,7 +320,7 @@ export default function LevelPage() {
 
           <div className="text-right">
             <div className="text-2xl font-bold text-purple-700">{score}</div>
-            <div className="text-xs text-gray-500">poäng</div>
+            <div className="text-xs text-gray-500">{STRINGS.POINTS}</div>
           </div>
         </div>
 
@@ -362,7 +363,7 @@ export default function LevelPage() {
             </motion.div>
 
             <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              {stars >= 1 ? 'Nivå klar!' : 'Försök igen!'}
+              {stars >= 1 ? STRINGS.LEVEL_COMPLETE : STRINGS.RETRY + '!'}
             </h2>
 
             <p className="text-gray-600 mb-6">
@@ -395,15 +396,15 @@ export default function LevelPage() {
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="bg-purple-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-purple-600">{score}</div>
-                <div className="text-xs text-gray-500">Poäng</div>
+                <div className="text-xs text-gray-500">{STRINGS.POINTS}</div>
               </div>
               <div className="bg-green-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-green-600">{correctCount}/{cards.length}</div>
-                <div className="text-xs text-gray-500">Rätt</div>
+                <div className="text-xs text-gray-500">{STRINGS.CORRECT}</div>
               </div>
               <div className="bg-orange-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-orange-600">{accuracy}%</div>
-                <div className="text-xs text-gray-500">Noggrannhet</div>
+                <div className="text-xs text-gray-500">{STRINGS.ACCURACY}</div>
               </div>
             </div>
 
@@ -411,7 +412,7 @@ export default function LevelPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/map">
                 <button className="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors">
-                  Till kartan
+                  {STRINGS.TO_MAP}
                 </button>
               </Link>
 
@@ -427,7 +428,7 @@ export default function LevelPage() {
                   }}
                   className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
                 >
-                  Försök igen
+                  {STRINGS.RETRY}
                 </button>
               ) : nextLevel ? (
                 <Link href={`/level/${nextLevel.id}`}>

@@ -34,7 +34,7 @@ const SPEED_MESSAGES = {
 const STREAK_MESSAGES: Record<number, string[]> = {
   3: ['3 i rad!', 'Trepoängare!', 'Hattrick!'],
   5: ['5 i rad!', 'Fantastiskt!', 'Du är på rulle!'],
-  7: ['7 i rad!', 'Otroligt!', 'Unstoppable!'],
+  7: ['7 i rad!', 'Otroligt!', 'Ostoppbar!'],
   10: ['10 i rad!', 'MÄSTARE!', 'Legendariskt!'],
 };
 
@@ -86,7 +86,7 @@ export function getFeedbackMessage(context: FeedbackContext): FeedbackMessage {
   if (correct && newBucket === 'mastered' && previousBucket !== 'mastered') {
     return {
       title: pickRandom(MASTERY_MESSAGES),
-      subtitle: 'Du beharskar detta kort! +25 XP',
+      subtitle: 'Du behärskar detta kort! +25 XP',
       isMastery: true,
     };
   }
