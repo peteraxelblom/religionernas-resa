@@ -96,7 +96,7 @@ Achievements go unnoticed if not highlighted.
 ### Solution
 Create dedicated celebration UI for key moments:
 - Confetti/particles for visual impact
-- Sound cues for audio reinforcement (TODO)
+- Sound cues for audio reinforcement (Web Audio API)
 - Transition animations (old state → new state)
 - Clear statement of what was earned
 
@@ -204,6 +204,103 @@ Resources that reset each session:
 
 ---
 
+## Pattern: Instant Win Onboarding
+
+### Problem
+New users see complex dashboards before experiencing the core loop. High cognitive load, no emotional hook.
+
+### Solution
+Give the player a win within 30 seconds of starting:
+
+1. **Minimal setup** - Name only (no tutorials, no settings)
+2. **Immediate action** - One simple task they can succeed at
+3. **Big celebration** - Confetti, XP, level reveal
+4. **Then dashboard** - Now context is meaningful
+
+### Implementation
+```
+Name Input → Easy First Card → CELEBRATION → Dashboard
+              (guaranteed success)   (XP + Level)
+```
+
+### Key Principles
+- First question should be easy (70%+ success rate)
+- Even wrong answers get partial reward ("everyone wins")
+- Celebration should feel disproportionately big
+- Player arrives at dashboard with momentum, not confusion
+
+### Example: Religionernas Resa
+- Name input with "Börja äventyret!" button
+- One multiple-choice card about Abrahamic religions
+- "FANTASTISKT!" screen with +10 XP and level badge
+- Dashboard shows 10/100 XP progress
+
+---
+
+## Pattern: Variable Daily Rewards
+
+### Problem
+Fixed daily rewards become expected and lose excitement. Players return out of obligation, not anticipation.
+
+### Solution
+Mystery box with variable rewards based on engagement:
+
+| Streak | Reward Range | Bonus Chance |
+|--------|-------------|--------------|
+| Day 1 | 25-50 XP | 0% |
+| Day 3+ | 40-75 XP | 10% |
+| Day 5+ | 50-100 XP | 20% |
+| Day 7+ | 75-150 XP | 30% |
+
+### Psychological Mechanics
+- **Variable ratio** creates anticipation ("wanting")
+- **Streak multiplier** rewards consistency
+- **Bonus items** (shields, hints) add surprise
+- **Animation sequence** builds tension before reveal
+
+### Animation Sequence
+1. Mystery box appears (subtle shake)
+2. Player taps → box shakes more intensely
+3. Open animation with burst particles
+4. Reward reveals with bouncing numbers
+5. "Kom tillbaka imorgon!" reminder
+
+### Key Insight
+The reveal animation is as important as the reward. Anticipation activates dopamine more than the actual reward.
+
+---
+
+## Pattern: Atomic State Updates
+
+### Problem
+Multi-step flows break when state updates happen separately with persist middleware.
+
+### Solution
+Combine related state changes into single atomic actions:
+
+```typescript
+// WRONG - race condition risk
+setPlayerName(name);
+setOnboardingStep('firstCard');
+
+// CORRECT - atomic update
+startOnboarding: (name) => {
+  set({ playerName: name, onboardingStep: 'firstCard' });
+}
+```
+
+### When to Apply
+- Multi-step flows (onboarding, wizard)
+- Related state that must stay in sync
+- Using zustand/redux persist middleware
+
+### Symptoms of the Problem
+- Steps get skipped randomly
+- Flow works in dev but fails in production
+- Refreshing at wrong time causes invalid state
+
+---
+
 ## Pattern Catalog
 
 Quick reference for common design situations:
@@ -219,6 +316,9 @@ Quick reference for common design situations:
 | UI feels cluttered | Hero Element Hierarchy |
 | Learning feels like work | Spaced Repetition as Game |
 | Players hoard resources | Session-Scoped Resources |
+| New users overwhelmed | Instant Win Onboarding |
+| Daily returns feel obligatory | Variable Daily Rewards |
+| Multi-step flows break | Atomic State Updates |
 
 ---
 

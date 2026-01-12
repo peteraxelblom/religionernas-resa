@@ -64,30 +64,28 @@ Unresolved tensions, future considerations, and ideas to explore.
 
 ## Audio & Polish
 
-### Sound Effects - Not Implemented
+### ✅ Sound Effects - RESOLVED
 
-**Opportunities:**
-- Level-up fanfare
-- Card mastery chime
-- Correct/incorrect answer sounds
-- Streak milestone sounds
+**Resolution (Jan 2025):**
+- All sounds synthesized with Web Audio API in `lib/audio.ts`
+- Style: Cheerful, gamified (short melodic phrases)
+- Implemented sounds:
+  - `playCorrectSound()`, `playWrongSound()` - Answer feedback
+  - `playMysteryBoxOpen()`, `playRewardReveal()` - Daily rewards
+  - `playMasterySound()` - Card mastery celebration
+  - `playLevelCompleteSound()`, `playBossVictorySound()` - Level completion
 
-**Koster insight:** Audio is powerful feedback. The brain processes sound faster than visual.
-
-**Questions:**
-- What sound style fits the game? Cheerful? Calm? Gamified?
-- Risk of annoying in classroom settings?
-- Volume controls needed?
+**Volume:** Sounds are subtle (0.1-0.3 gain), suitable for classroom.
 
 ---
 
-### Haptic Feedback (Mobile)
+### ✅ Haptic Feedback (Mobile) - RESOLVED
 
-**Not explored:** Vibration on correct answers, level-ups, achievements.
-
-**Questions:**
-- Is this supported in PWA context?
-- Would it add or distract?
+**Resolution (Jan 2025):**
+- Implemented using `navigator.vibrate()` API
+- Used for: correct answers, level-ups, button taps
+- Graceful fallback when not supported (PWA/desktop)
+- Pattern: Short pulse (50ms) for feedback, longer (100ms) for celebrations
 
 ---
 
@@ -104,14 +102,18 @@ Unresolved tensions, future considerations, and ideas to explore.
 
 ---
 
-### Returning Player Experience
+### ✅ Returning Player Experience - RESOLVED
 
-**Not designed:** What happens when a player returns after days/weeks?
+**Resolution (Jan 2025):**
+- **Welcome Back Modal**: Shows personalized greeting, streak status, due cards count
+- **Daily Reward System**: Mystery box with variable XP (25-150) based on streak tier
+- **Tone**: Welcoming, not urgent ("Välkommen tillbaka, {name}!")
+- **Streak handling**:
+  - Maintained: "Bra jobbat! X dagar i rad"
+  - Broken: "Din streak nollställdes, men sköldar kan skydda dig!"
+- **Key files**: `WelcomeBackModal.tsx`, `DailyRewardModal.tsx`, `lib/returningPlayer.ts`
 
-**Questions:**
-- Should due cards feel urgent or welcoming?
-- "Welcome back" celebration?
-- Catch-up mechanics (reduced difficulty)?
+See decisions.md "Variable Daily Rewards with Mystery Box" and patterns.md "Variable Daily Rewards" for design rationale.
 
 ---
 

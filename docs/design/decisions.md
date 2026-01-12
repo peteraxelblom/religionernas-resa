@@ -102,7 +102,7 @@ Large PlayerLevelCard as hero element on home page with:
 - Confetti animation
 - Title transition display (old → new with sparkles)
 - New reward showcase
-- Sound effect (TODO: not yet implemented)
+- Sound effects via Web Audio API (`lib/audio.ts`)
 
 **Rationale (Koster):**
 Celebration is feedback that reinforces the reward of learning. The brain needs clear signals that "this was good."
@@ -207,3 +207,87 @@ We lose mid-level adaptive card sorting (prioritizing struggling cards). However
 
 **Lesson Learned:**
 When using useMemo with arrays that determine UI position (like card order), be careful about dependencies that update frequently. The index-to-item mapping must remain stable during the session.
+
+---
+
+## First-Time User Experience
+
+### Decision: Guided First Card Before Dashboard
+**Date:** January 2025
+**Status:** Implemented
+
+**Problem:**
+New users saw a dense dashboard immediately after naming. Information overload with no clear action. No dopamine hook in first 60 seconds.
+
+**Analysis (Cook):**
+The onboarding flow had no Skill Atom - user completed naming but got no feedback about their learning potential.
+
+**Analysis (Koster):**
+No pattern to learn yet. The dashboard showed systems but user hadn't experienced them.
+
+**Solution:**
+After name input, show ONE guided flashcard immediately:
+1. Name input → "Börja äventyret!"
+2. Guided first card (simple Abrahamic religions question)
+3. Celebration screen ("FANTASTISKT!") with XP and level reveal
+4. Dashboard (now meaningful - user has progress)
+
+**Key insight:** Player gets instant win within 30 seconds of naming.
+
+**Technical note:** Required atomic state update (`startOnboarding`) to prevent race condition with zustand persist middleware. See "Atomic State Updates" pattern.
+
+---
+
+### Decision: Variable Daily Rewards with Mystery Box
+**Date:** January 2025
+**Status:** Implemented
+
+**Problem:**
+Returning users saw informational welcome modal but no compelling reason to return daily. No "pull" mechanic.
+
+**Analysis (Koster):**
+Variable rewards create anticipation ("wanting"). Fixed rewards become expected and lose emotional impact.
+
+**Solution:**
+Mystery box with tiered rewards based on streak:
+- Day 1: 25-50 XP
+- Day 3+: 40-75 XP, 10% bonus item chance
+- Day 5+: 50-100 XP, 20% bonus item chance
+- Day 7+: 75-150 XP, 30% bonus item chance
+
+Bonus items: streak shields, hint tokens.
+
+**Animation sequence:**
+1. Box shakes with anticipation
+2. Tap to open → burst animation
+3. Reward reveals with bouncing numbers
+4. "Kom tillbaka imorgon!" reminder
+
+**Rationale:**
+- Creates daily ritual
+- Variable rewards maintain excitement
+- Streak multiplier incentivizes consecutive days
+- Functional rewards (shields, hints) close new Skill Atoms
+
+---
+
+### Decision: Atomic State Updates for Multi-Step Flows
+**Date:** January 12, 2025
+**Status:** Implemented
+
+**Problem:**
+First-time flow was skipping the guided card step, jumping directly from name input to dashboard.
+
+**Root Cause:**
+Two separate zustand state updates (`setPlayerName(name)` then `setOnboardingStep('firstCard')`) caused race condition with persist middleware. The persist would trigger between updates, sometimes writing intermediate state.
+
+**Solution:**
+Create atomic action that updates both values in single `set()` call:
+```typescript
+startOnboarding: (name) => {
+  set({ playerName: name, onboardingStep: 'firstCard' });
+}
+```
+
+**Lesson Learned:**
+When using zustand persist middleware with multi-step flows, combine related state changes into atomic actions to prevent intermediate states from being persisted.
