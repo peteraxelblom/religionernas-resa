@@ -10,7 +10,9 @@ interface WelcomeBackModalProps {
   dueCards: number;
   streakStatus: 'maintained' | 'broken' | 'new';
   previousStreak?: number;
+  hasDailyReward?: boolean;
   onClose: () => void;
+  onClaimReward?: () => void;
 }
 
 export default function WelcomeBackModal({
@@ -19,7 +21,9 @@ export default function WelcomeBackModal({
   dueCards,
   streakStatus,
   previousStreak = 0,
+  hasDailyReward = false,
   onClose,
+  onClaimReward,
 }: WelcomeBackModalProps) {
   useEffect(() => {
     hapticMedium();
@@ -140,8 +144,34 @@ export default function WelcomeBackModal({
               </div>
             </motion.div>
 
+            {/* Daily reward preview */}
+            {hasDailyReward && (
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="flex items-center gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-3 border-2 border-amber-200"
+              >
+                <motion.span
+                  animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                  className="text-3xl"
+                >
+                  🎁
+                </motion.span>
+                <div>
+                  <p className="text-sm font-bold text-amber-800">
+                    Din dagliga belöning väntar!
+                  </p>
+                  <p className="text-xs text-amber-600">
+                    Tryck för att öppna
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
             {/* Due cards reminder */}
-            {dueCards > 0 && (
+            {dueCards > 0 && !hasDailyReward && (
               <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -157,18 +187,51 @@ export default function WelcomeBackModal({
               </motion.div>
             )}
 
-            {/* Continue button */}
-            <motion.button
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onClose}
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-            >
-              Sätt igång! 🚀
-            </motion.button>
+            {/* Primary action button */}
+            {hasDailyReward && onClaimReward ? (
+              <motion.button
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onClaimReward}
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden"
+              >
+                {/* Pulse effect */}
+                <motion.div
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 bg-white rounded-xl"
+                />
+                <span className="relative z-10">Öppna belöning! 🎁</span>
+              </motion.button>
+            ) : (
+              <motion.button
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onClose}
+                className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
+              >
+                Sätt igång! 🚀
+              </motion.button>
+            )}
+
+            {/* Skip option when reward is available */}
+            {hasDailyReward && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                onClick={onClose}
+                className="w-full text-gray-400 text-sm hover:text-gray-600 transition-colors"
+              >
+                (eller hoppa över)
+              </motion.button>
+            )}
           </div>
         </motion.div>
       </motion.div>

@@ -29,7 +29,9 @@ export type RewardEffect =
   | 'xpBoost10'           // Level 6: +10% XP from all sources
   | 'bossExtraLife'       // Level 8: Start boss with 4 lives
   | 'doubleMasteryXP'     // Level 12: 2x XP when mastering cards
-  | 'speedBonus';         // Level 20: Bonus XP for fast answers
+  | 'speedBonus'          // Level 20: Bonus XP for fast answers
+  | 'perfectLevelBonus'   // Level 22: Bonus XP for 100% on a level
+  | 'dailyChallengeBoost';// Level 24: Double XP from daily challenges
 
 // XP required to reach each level (cumulative)
 // Gentle exponential curve - early levels come fast
@@ -70,6 +72,10 @@ const LEVEL_TITLES: Record<number, string> = {
   10: 'Kunskapsälskare', // Knowledge Lover
   15: 'Mästare',         // Master
   20: 'Visdomssökare',   // Wisdom Seeker
+  21: 'Tänkare',         // Thinker
+  22: 'Filosof',         // Philosopher
+  23: 'Vägledare',       // Guide
+  24: 'Mentor',          // Mentor
   25: 'Religionsexpert', // Religion Expert
 };
 
@@ -122,6 +128,22 @@ const LEVEL_REWARDS: Reward[] = [
     effect: 'speedBonus',
     icon: '⏱️',
     unlockedAtLevel: 20,
+  },
+  {
+    id: 'perfect-level-bonus',
+    name: 'Perfektionsbonus',
+    description: '+25 XP när du klarar en nivå med 100%',
+    effect: 'perfectLevelBonus',
+    icon: '💎',
+    unlockedAtLevel: 22,
+  },
+  {
+    id: 'daily-challenge-boost',
+    name: 'Utmaningsexpert',
+    description: '2x XP från dagliga utmaningar',
+    effect: 'dailyChallengeBoost',
+    icon: '🏆',
+    unlockedAtLevel: 24,
   },
 ];
 
@@ -286,4 +308,37 @@ export function calculateSpeedBonus(
   }
 
   return { bonusXP: 0, wasSpeedBonus: false };
+}
+
+/**
+ * Calculate perfect level bonus for 100% accuracy
+ * @returns Bonus XP amount (25 XP if reward unlocked and player got 100%)
+ */
+export function calculatePerfectLevelBonus(
+  playerLevel: number,
+  correctAnswers: number,
+  totalQuestions: number
+): number {
+  const PERFECT_BONUS_AMOUNT = 25;
+
+  if (
+    hasRewardEffect(playerLevel, 'perfectLevelBonus') &&
+    correctAnswers === totalQuestions &&
+    totalQuestions > 0
+  ) {
+    return PERFECT_BONUS_AMOUNT;
+  }
+
+  return 0;
+}
+
+/**
+ * Apply daily challenge XP boost if player has the reward
+ * @returns XP amount (doubled if reward unlocked)
+ */
+export function applyDailyChallengeBoost(xp: number, playerLevel: number): number {
+  if (hasRewardEffect(playerLevel, 'dailyChallengeBoost')) {
+    return xp * 2;
+  }
+  return xp;
 }

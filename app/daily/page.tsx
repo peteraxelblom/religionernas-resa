@@ -10,6 +10,7 @@ import {
   getTimeUntilReset,
   DailyChallenge,
 } from '@/lib/dailyChallenge';
+import { applyDailyChallengeBoost } from '@/lib/playerLevel';
 import FlashCard from '@/components/cards/FlashCard';
 import StreakShieldIndicator from '@/components/StreakShieldIndicator';
 import { Card } from '@/types/card';
@@ -41,6 +42,7 @@ export default function DailyChallengesPage() {
     hasReward,
     isShieldAvailable,
     playerName,
+    getPlayerLevel,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -107,7 +109,10 @@ export default function DailyChallengesPage() {
 
     if (success) {
       playLevelCompleteSound();
-      addXP(selectedChallenge.bonusXP);
+      // Apply daily challenge boost (Level 24+): 2x XP from daily challenges
+      const playerLevel = getPlayerLevel();
+      const boostedXP = applyDailyChallengeBoost(selectedChallenge.bonusXP, playerLevel.level);
+      addXP(boostedXP);
 
       // Mark challenge as completed in game store
       completeDailyChallenge(selectedChallenge.id);
@@ -122,7 +127,7 @@ export default function DailyChallengesPage() {
     } else {
       setPhase('failed');
     }
-  }, [selectedChallenge, startTime, correctCount, addXP, completeDailyChallenge, getDailyCompletionCount, unlockAchievement]);
+  }, [selectedChallenge, startTime, correctCount, addXP, completeDailyChallenge, getDailyCompletionCount, unlockAchievement, getPlayerLevel]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard || !selectedChallenge) return;

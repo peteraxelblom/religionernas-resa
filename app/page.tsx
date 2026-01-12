@@ -7,8 +7,10 @@ import { useGameStore } from '@/stores/gameStore';
 import { cardStats } from '@/data/cards';
 import { levels } from '@/data/levels';
 import PlayerLevelCard from '@/components/PlayerLevelCard';
-import NameInputModal from '@/components/NameInputModal';
 import WelcomeBackModal from '@/components/WelcomeBackModal';
+import FirstTimeFlow from '@/components/FirstTimeFlow';
+import DailyRewardModal from '@/components/DailyRewardModal';
+import ParticleBackground from '@/components/ParticleBackground';
 import { STRINGS } from '@/lib/strings/sv';
 import {
   getReturningPlayerStatus,
@@ -25,12 +27,15 @@ export default function Home() {
     getMasteredCardsCount,
     resetGame,
     playerName,
-    setPlayerName,
+    hasCompletedOnboarding,
+    canClaimDailyReward,
   } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [showDailyReward, setShowDailyReward] = useState(false);
   const [returningStatus, setReturningStatus] = useState<ReturnType<typeof getReturningPlayerStatus> | null>(null);
+  const [showFirstTimeFlow, setShowFirstTimeFlow] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
@@ -38,9 +43,20 @@ export default function Home() {
     initGame();
   }, [initGame]);
 
+  // Check for first-time users after mount
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Show first-time flow for users who haven't completed onboarding
+    if (!hasCompletedOnboarding) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- One-time initialization based on store check
+      setShowFirstTimeFlow(true);
+    }
+  }, [mounted, hasCompletedOnboarding]);
+
   // Check for returning player after mount
   useEffect(() => {
-    if (!mounted || !playerName) return;
+    if (!mounted || !playerName || !hasCompletedOnboarding) return;
 
     const status = getReturningPlayerStatus(stats.lastPlayDate, stats.currentDailyStreak);
 
@@ -50,7 +66,7 @@ export default function Home() {
       setShowWelcomeBack(true);
       markWelcomeBackShown();
     }
-  }, [mounted, playerName, stats.lastPlayDate, stats.currentDailyStreak]);
+  }, [mounted, playerName, hasCompletedOnboarding, stats.lastPlayDate, stats.currentDailyStreak]);
 
   if (!mounted) {
     return (
@@ -60,9 +76,13 @@ export default function Home() {
     );
   }
 
-  // Show name input modal if player hasn't entered their name yet
-  if (!playerName) {
-    return <NameInputModal onSubmit={setPlayerName} />;
+  // Show first-time flow for new users who haven't completed onboarding
+  if (showFirstTimeFlow) {
+    return (
+      <FirstTimeFlow
+        onComplete={() => setShowFirstTimeFlow(false)}
+      />
+    );
   }
 
   const completedLevels = Object.values(levelProgress).filter(l => l.completed).length;
@@ -71,8 +91,11 @@ export default function Home() {
   const masteredCards = getMasteredCardsCount();
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen p-4 md:p-8 relative">
+      {/* Floating particles background */}
+      <ParticleBackground />
+
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Header with personalized welcome */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -121,6 +144,41 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Daily Reward Button */}
+          {canClaimDailyReward() && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowDailyReward(true)}
+              className="w-full mb-4 py-4 px-6 bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden"
+            >
+              {/* Pulse effect */}
+              <motion.div
+                animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 bg-white rounded-xl"
+              />
+              {/* Shimmer effect */}
+              <motion.div
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              />
+              <div className="relative z-10 flex items-center justify-center gap-3">
+                <motion.span
+                  animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                  className="text-2xl"
+                >
+                  🎁
+                </motion.span>
+                <span className="text-lg">Daglig belöning!</span>
+              </div>
+            </motion.button>
+          )}
 
           {/* Review Reminder */}
           {dueCards > 0 && (
@@ -241,7 +299,20 @@ export default function Home() {
             dueCards={dueCards}
             streakStatus={returningStatus.streakStatus}
             previousStreak={returningStatus.previousStreak}
+            hasDailyReward={canClaimDailyReward()}
             onClose={() => setShowWelcomeBack(false)}
+            onClaimReward={() => {
+              setShowWelcomeBack(false);
+              setShowDailyReward(true);
+            }}
+          />
+        )}
+
+        {/* Daily reward modal */}
+        {showDailyReward && (
+          <DailyRewardModal
+            onClose={() => setShowDailyReward(false)}
+            onSkip={() => setShowDailyReward(false)}
           />
         )}
 

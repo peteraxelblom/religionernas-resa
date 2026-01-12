@@ -122,8 +122,8 @@ export default function LevelPage() {
       if (accuracy >= 95) stars = 3;
     }
 
-    // Complete the level in the store
-    completeLevel(levelId, stars, score);
+    // Complete the level in the store (pass correctCount for perfect level bonus)
+    completeLevel(levelId, stars, score, correctCount, cards.length);
 
     // Show celebration and play sound
     playLevelCompleteSound();

@@ -55,14 +55,20 @@ export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProp
         <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
         <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full -ml-4 -mb-4" />
 
-        {/* Level badge */}
+        {/* Level badge with pulse glow */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
           className="relative mx-auto"
         >
-          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mx-auto mb-3 ring-4 ring-white/30">
+          {/* Pulsing glow effect behind badge */}
+          <motion.div
+            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.1, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute inset-0 w-24 h-24 rounded-full bg-white mx-auto"
+          />
+          <div className="relative w-24 h-24 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mx-auto mb-3 ring-4 ring-white/30">
             <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-lg">
               <span className="text-4xl font-bold bg-gradient-to-br from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {playerLevel.level}
@@ -91,8 +97,15 @@ export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProp
               initial={{ width: 0 }}
               animate={{ width: `${playerLevel.progressPercent}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
-              className={`h-full bg-gradient-to-r ${getLevelGradient()} rounded-full`}
-            />
+              className={`h-full bg-gradient-to-r ${getLevelGradient()} rounded-full relative overflow-hidden`}
+            >
+              {/* Shimmer effect on progress bar */}
+              <motion.div
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              />
+            </motion.div>
           </div>
           <p className="text-xs text-gray-400 mt-1 text-center">
             Totalt {playerLevel.totalXP.toLocaleString('sv-SE')} XP

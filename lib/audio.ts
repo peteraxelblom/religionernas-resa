@@ -238,6 +238,144 @@ export function playAchievementSound() {
   }
 }
 
+// Mystery box shake/open sound - building anticipation
+export function playMysteryBoxOpen() {
+  try {
+    const ctx = getAudioContext();
+
+    // Rising pitch sequence building excitement
+    const notes = [
+      { freq: 300, delay: 0, duration: 0.15 },
+      { freq: 350, delay: 0.12, duration: 0.15 },
+      { freq: 400, delay: 0.24, duration: 0.15 },
+      { freq: 500, delay: 0.36, duration: 0.15 },
+      { freq: 600, delay: 0.48, duration: 0.15 },
+      { freq: 800, delay: 0.6, duration: 0.2 },
+      { freq: 1000, delay: 0.75, duration: 0.25 },
+    ];
+
+    notes.forEach(({ freq, delay, duration }) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime + delay);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + duration);
+
+      oscillator.type = 'sine';
+      oscillator.start(ctx.currentTime + delay);
+      oscillator.stop(ctx.currentTime + delay + duration);
+    });
+
+    // Add sparkle at the end
+    setTimeout(() => {
+      const sparkleNotes = [1200, 1400, 1600];
+      sparkleNotes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.05);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.05 + 0.15);
+        osc.type = 'sine';
+        osc.start(ctx.currentTime + i * 0.05);
+        osc.stop(ctx.currentTime + i * 0.05 + 0.15);
+      });
+    }, 900);
+  } catch {
+    // Silently fail
+  }
+}
+
+// Reward reveal sound - coin drop + mini fanfare
+export function playRewardReveal() {
+  try {
+    const ctx = getAudioContext();
+
+    // Coin drop sounds (metallic pings)
+    const coinNotes = [
+      { freq: 2000, delay: 0 },
+      { freq: 2200, delay: 0.08 },
+      { freq: 2400, delay: 0.16 },
+    ];
+
+    coinNotes.forEach(({ freq, delay }) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime + delay);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.1);
+
+      oscillator.type = 'triangle';
+      oscillator.start(ctx.currentTime + delay);
+      oscillator.stop(ctx.currentTime + delay + 0.1);
+    });
+
+    // Mini fanfare after coin sounds
+    const fanfareNotes = [659.25, 783.99, 987.77, 1046.5];
+    fanfareNotes.forEach((freq, i) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + 0.3 + i * 0.1);
+      gainNode.gain.setValueAtTime(0.25, ctx.currentTime + 0.3 + i * 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3 + i * 0.1 + 0.25);
+
+      oscillator.type = 'sine';
+      oscillator.start(ctx.currentTime + 0.3 + i * 0.1);
+      oscillator.stop(ctx.currentTime + 0.3 + i * 0.1 + 0.25);
+    });
+  } catch {
+    // Silently fail
+  }
+}
+
+// Whoosh transition sound
+export function playWhoosh() {
+  try {
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    oscillator.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // White noise-like effect with sweeping filter
+    oscillator.type = 'sawtooth';
+    oscillator.frequency.setValueAtTime(100, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15);
+    oscillator.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.3);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(200, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(2000, ctx.currentTime + 0.15);
+    filter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+    gainNode.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.15);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.3);
+  } catch {
+    // Silently fail
+  }
+}
+
 // Mastery celebration - "Grokking" sound (Theory of Fun)
 // A special triumphant sound when a card reaches mastered status
 export function playMasterySound() {

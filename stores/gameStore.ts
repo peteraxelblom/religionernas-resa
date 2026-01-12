@@ -6,7 +6,14 @@ import { SavedGameData, LevelProgress } from '@/types/progress';
 import { CardProgress, CardBucket } from '@/types/card';
 import { createDefaultSaveData, shouldContinueStreak, isNewDay } from '@/lib/storage';
 import { createInitialCardProgress, updateCardProgress, isDueForReview } from '@/lib/spacedRepetition';
-import { calculatePlayerLevel, PlayerLevel, applyXPBoost, applyMasteryBonus, calculateSpeedBonus, hasRewardEffect } from '@/lib/playerLevel';
+import { calculatePlayerLevel, PlayerLevel, applyXPBoost, applyMasteryBonus, calculateSpeedBonus, calculatePerfectLevelBonus, hasRewardEffect } from '@/lib/playerLevel';
+
+// Daily reward result type
+export interface DailyRewardResult {
+  xp: number;
+  bonusItem: 'streakShield' | 'hint' | null;
+  streakDay: number;
+}
 
 interface GameState extends SavedGameData {
   // Session state (not persisted)
@@ -22,12 +29,22 @@ interface GameState extends SavedGameData {
   shieldLastUsedDate: string | null; // ISO date string to track when to reset
   lastShieldActivation: boolean; // True if shield just activated (for UI feedback)
 
+  // Onboarding state (persisted)
+  hasCompletedOnboarding: boolean;
+  onboardingStep: 'naming' | 'firstCard' | 'celebration' | null;
+
+  // Daily reward state (persisted)
+  dailyReward: {
+    lastClaimedDate: string | null;
+    consecutiveDaysClaimed: number;
+  };
+
   // Actions
   initGame: (playerName?: string) => void;
   setPlayerName: (name: string) => void;
 
   // Level progress
-  completeLevel: (levelId: string, stars: number, score: number) => void;
+  completeLevel: (levelId: string, stars: number, score: number, correctCount?: number, totalQuestions?: number) => void;
   isLevelCompleted: (levelId: string) => boolean;
   getLevelProgress: (levelId: string) => LevelProgress | undefined;
 
@@ -55,11 +72,21 @@ interface GameState extends SavedGameData {
 
   // Player Level
   getPlayerLevel: () => PlayerLevel;
-  hasReward: (effect: 'freeHintPerLevel' | 'streakShield' | 'xpBoost10' | 'bossExtraLife' | 'doubleMasteryXP' | 'speedBonus') => boolean;
+  hasReward: (effect: 'freeHintPerLevel' | 'streakShield' | 'xpBoost10' | 'bossExtraLife' | 'doubleMasteryXP' | 'speedBonus' | 'perfectLevelBonus' | 'dailyChallengeBoost') => boolean;
 
   // Streak Shield
   isShieldAvailable: () => boolean; // Shield unlocked AND not used today
   clearShieldActivation: () => void; // Clear the lastShieldActivation flag after showing UI
+
+  // Onboarding
+  completeOnboarding: () => void;
+  setOnboardingStep: (step: 'naming' | 'firstCard' | 'celebration' | null) => void;
+  startOnboarding: (name: string) => void; // Combined action: set name + advance to firstCard
+
+  // Daily Reward
+  canClaimDailyReward: () => boolean;
+  claimDailyReward: () => DailyRewardResult;
+  getDailyRewardStreak: () => number;
 
   // Stats
   addXP: (amount: number) => void;
@@ -115,6 +142,16 @@ export const useGameStore = create<GameState>()(
       shieldLastUsedDate: null,
       lastShieldActivation: false,
 
+      // Onboarding state
+      hasCompletedOnboarding: false,
+      onboardingStep: 'naming' as const,
+
+      // Daily reward state
+      dailyReward: {
+        lastClaimedDate: null,
+        consecutiveDaysClaimed: 0,
+      },
+
       // Actions
       initGame: (playerName?: string) => {
         const state = get();
@@ -132,7 +169,7 @@ export const useGameStore = create<GameState>()(
       setPlayerName: (name) => set({ playerName: name }),
 
       // Level progress
-      completeLevel: (levelId, stars, score) => {
+      completeLevel: (levelId, stars, score, correctCount, totalQuestions) => {
         set((state) => {
           const existing = state.levelProgress[levelId];
           const isFirstTime = !existing?.completed;
@@ -147,9 +184,15 @@ export const useGameStore = create<GameState>()(
           };
 
           // Calculate XP reward
+          const playerLevel = calculatePlayerLevel(state.stats.totalXP);
           let xpReward = 50; // Base XP for completing
           xpReward += stars * 25; // Bonus for stars
           if (isFirstTime) xpReward += 100; // First time bonus
+
+          // Perfect level bonus (Level 22+): +25 XP for 100% accuracy
+          if (correctCount !== undefined && totalQuestions !== undefined) {
+            xpReward += calculatePerfectLevelBonus(playerLevel.level, correctCount, totalQuestions);
+          }
 
           return {
             levelProgress: {
@@ -404,6 +447,95 @@ export const useGameStore = create<GameState>()(
         set({ lastShieldActivation: false });
       },
 
+      // Onboarding
+      completeOnboarding: () => {
+        set({ hasCompletedOnboarding: true, onboardingStep: null });
+      },
+
+      setOnboardingStep: (step) => {
+        set({ onboardingStep: step });
+      },
+
+      startOnboarding: (name) => {
+        // Atomic update: set both playerName and onboardingStep in single state change
+        // This prevents race conditions with persist middleware
+        set({ playerName: name, onboardingStep: 'firstCard' });
+      },
+
+      // Daily Reward
+      canClaimDailyReward: () => {
+        const state = get();
+        const today = new Date().toISOString().split('T')[0];
+        return state.dailyReward.lastClaimedDate !== today;
+      },
+
+      claimDailyReward: () => {
+        const state = get();
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+        // Calculate streak
+        const wasClaimedYesterday = state.dailyReward.lastClaimedDate === yesterday;
+        const newStreak = wasClaimedYesterday
+          ? state.dailyReward.consecutiveDaysClaimed + 1
+          : 1;
+
+        // Calculate reward based on streak tier
+        // Tier 1 (day 1-2): 25-50 XP, 0% bonus chance
+        // Tier 2 (day 3-4): 40-75 XP, 10% bonus chance
+        // Tier 3 (day 5-6): 50-100 XP, 20% bonus chance
+        // Tier 4 (day 7+): 75-150 XP, 30% bonus chance
+        let minXP = 25, maxXP = 50, bonusChance = 0;
+        if (newStreak >= 7) {
+          minXP = 75; maxXP = 150; bonusChance = 0.3;
+        } else if (newStreak >= 5) {
+          minXP = 50; maxXP = 100; bonusChance = 0.2;
+        } else if (newStreak >= 3) {
+          minXP = 40; maxXP = 75; bonusChance = 0.1;
+        }
+
+        // Random XP within range
+        const xp = Math.floor(Math.random() * (maxXP - minXP + 1)) + minXP;
+
+        // Random bonus item
+        const bonusRoll = Math.random();
+        let bonusItem: 'streakShield' | 'hint' | null = null;
+        if (bonusRoll < bonusChance) {
+          bonusItem = Math.random() < 0.5 ? 'streakShield' : 'hint';
+        }
+
+        // Update state
+        set((s) => ({
+          dailyReward: {
+            lastClaimedDate: today,
+            consecutiveDaysClaimed: newStreak,
+          },
+          stats: {
+            ...s.stats,
+            totalXP: s.stats.totalXP + xp,
+          },
+        }));
+
+        return { xp, bonusItem, streakDay: newStreak };
+      },
+
+      getDailyRewardStreak: () => {
+        const state = get();
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+        // If claimed today, return current streak
+        if (state.dailyReward.lastClaimedDate === today) {
+          return state.dailyReward.consecutiveDaysClaimed;
+        }
+        // If claimed yesterday, would continue streak
+        if (state.dailyReward.lastClaimedDate === yesterday) {
+          return state.dailyReward.consecutiveDaysClaimed + 1;
+        }
+        // Otherwise streak resets
+        return 1;
+      },
+
       // Stats
       addXP: (amount) => {
         set((state) => {
@@ -523,6 +655,12 @@ export const useGameStore = create<GameState>()(
           ...createDefaultSaveData(''),
           currentStreak: 0,
           sessionStartTime: null,
+          hasCompletedOnboarding: false,
+          onboardingStep: 'naming',
+          dailyReward: {
+            lastClaimedDate: null,
+            consecutiveDaysClaimed: 0,
+          },
         });
       },
     }),
@@ -542,6 +680,11 @@ export const useGameStore = create<GameState>()(
         // Streak Shield state (resets daily via shieldLastUsedDate comparison)
         shieldUsedToday: state.shieldUsedToday,
         shieldLastUsedDate: state.shieldLastUsedDate,
+        // Onboarding state
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
+        onboardingStep: state.onboardingStep,
+        // Daily reward state
+        dailyReward: state.dailyReward,
       }),
     }
   )
