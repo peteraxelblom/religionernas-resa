@@ -55,10 +55,11 @@ export default function GuidedFirstCard({ onComplete }: GuidedFirstCardProps) {
       hapticError();
     }
 
-    // Delay before showing celebration
+    // Delay before showing celebration - shorter for correct (just see green highlight)
+    // longer for wrong (time to read correct answer)
     setTimeout(() => {
       onComplete(isCorrect);
-    }, 2000);
+    }, isCorrect ? 1000 : 2000);
   };
 
   const isCorrect = selectedOption === TUTORIAL_CARD.answer;
@@ -80,10 +81,10 @@ export default function GuidedFirstCard({ onComplete }: GuidedFirstCardProps) {
         >
           <span className="text-4xl mb-2 block">🎯</span>
           <h2 className="text-xl font-bold text-purple-800 mb-1">
-            Bra jobbat, {playerName}!
+            Redo, {playerName}?
           </h2>
           <p className="text-gray-600 text-sm">
-            Låt oss testa! Här är ditt första kort...
+            Här är ditt första kort!
           </p>
         </motion.div>
 
@@ -149,28 +150,16 @@ export default function GuidedFirstCard({ onComplete }: GuidedFirstCardProps) {
           })}
         </div>
 
-        {/* Result feedback */}
+        {/* Brief feedback for wrong answer only - correct goes straight to celebration */}
         <AnimatePresence>
-          {showResult && (
+          {showResult && !isCorrect && (
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className={`
-                p-4 rounded-xl mb-4 text-center
-                ${isCorrect ? 'bg-green-100' : 'bg-amber-100'}
-              `}
+              className="p-3 rounded-xl mb-4 text-center bg-amber-50 border border-amber-200"
             >
-              <span className="text-3xl mb-2 block">
-                {isCorrect ? '🎉' : '💪'}
-              </span>
-              <p className={`font-bold ${isCorrect ? 'text-green-800' : 'text-amber-800'}`}>
-                {isCorrect ? 'Helt rätt!' : 'Nästan!'}
-              </p>
-              <p className={`text-sm ${isCorrect ? 'text-green-600' : 'text-amber-600'}`}>
-                {isCorrect
-                  ? 'Du är redo för äventyret!'
-                  : `Rätt svar: ${TUTORIAL_CARD.answer}`
-                }
+              <p className="text-sm text-amber-700">
+                Rätt svar: <span className="font-medium">{TUTORIAL_CARD.answer}</span>
               </p>
             </motion.div>
           )}
