@@ -8,6 +8,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { getLevelById, getNextLevel } from '@/data/levels';
 import { getCardsByLevel, getCardsByReligion, allCards } from '@/data/cards';
 import FlashCard from '@/components/cards/FlashCard';
+import StreakShieldIndicator from '@/components/StreakShieldIndicator';
 import { Card } from '@/types/card';
 import { playStreakSound, playLevelCompleteSound } from '@/lib/audio';
 import {
@@ -33,6 +34,7 @@ export default function LevelPage() {
     cardProgress,
     hasReward,
     isShieldAvailable,
+    playerName,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -349,13 +351,7 @@ export default function LevelPage() {
         <div className="mb-6">
           <div className="flex justify-between text-sm text-gray-600 mb-1">
             <span>Kort {currentCardIndex + 1} av {cards.length}</span>
-            <span className="flex items-center gap-1">
-              {streak > 0 && (
-                <span className="text-orange-500 font-bold animate-pulse">
-                  🔥 {streak}x
-                </span>
-              )}
-            </span>
+            <StreakShieldIndicator streak={streak} isShieldAvailable={isShieldAvailable()} />
           </div>
           <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
             <motion.div
@@ -389,8 +385,8 @@ export default function LevelPage() {
 
             <p className="text-gray-600 mb-6">
               {stars >= 1
-                ? `Du klarade nivån med ${accuracy}% rätt!`
-                : `Du behöver minst ${level.passingScore}% för att klara nivån.`}
+                ? `Bra jobbat${playerName ? `, ${playerName}` : ''}! Du klarade nivån med ${accuracy}% rätt!`
+                : `Nästan där${playerName ? `, ${playerName}` : ''}! Du behöver minst ${level.passingScore}% för att klara nivån.`}
             </p>
 
             {/* Stars */}
@@ -483,6 +479,7 @@ export default function LevelPage() {
               hasDoubleMasteryBonus={hasReward('doubleMasteryXP')}
               hasSpeedBonusReward={hasReward('speedBonus')}
               isShieldAvailable={isShieldAvailable()}
+              playerName={playerName}
             />
           )
         )}

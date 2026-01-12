@@ -20,6 +20,7 @@ interface FlashCardProps {
   hasDoubleMasteryBonus?: boolean; // Player has Level 12+ reward for 2x mastery XP
   hasSpeedBonusReward?: boolean; // Player has Level 20+ reward for speed bonus
   isShieldAvailable?: boolean; // Streak shield available for use
+  playerName?: string; // Player's name for personalized feedback
 }
 
 export default function FlashCard({
@@ -32,6 +33,7 @@ export default function FlashCard({
   hasDoubleMasteryBonus = false,
   hasSpeedBonusReward = false,
   isShieldAvailable = false,
+  playerName,
 }: FlashCardProps) {
   const [, setIsFlipped] = useState(false); // isFlipped tracked for state management
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -150,6 +152,7 @@ export default function FlashCard({
       hasDoubleMasteryBonus,
       hasSpeedBonus: speedBonusApplies,
       shieldActivated: shieldWillActivate,
+      playerName,
     };
 
     const feedback = getFeedbackMessage(context);

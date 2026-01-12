@@ -34,6 +34,7 @@ export default function BossPage() {
     getPlayerLevel,
     hasReward,
     isShieldAvailable,
+    playerName,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -425,7 +426,19 @@ export default function BossPage() {
               </motion.span>
             ))}
           </div>
-          {/* Shield indicator */}
+          {/* Streak shield indicator (Level 4 reward) */}
+          {isShieldAvailable() && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="flex items-center gap-1 bg-purple-600/50 px-3 py-1 rounded-full"
+              title="Streak-sköld redo"
+            >
+              <span className="text-xl">🛡️</span>
+              <span className="text-xs text-purple-200">Streak</span>
+            </motion.div>
+          )}
+          {/* Boss shield indicator (from shield_round) */}
           {hasShield && (
             <motion.div
               initial={{ scale: 0 }}
@@ -580,6 +593,7 @@ export default function BossPage() {
               hasDoubleMasteryBonus={hasReward('doubleMasteryXP')}
               hasSpeedBonusReward={hasReward('speedBonus')}
               isShieldAvailable={isShieldAvailable()}
+              playerName={playerName}
             />
           </div>
         )}

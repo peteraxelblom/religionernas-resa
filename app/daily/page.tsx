@@ -11,6 +11,7 @@ import {
   DailyChallenge,
 } from '@/lib/dailyChallenge';
 import FlashCard from '@/components/cards/FlashCard';
+import StreakShieldIndicator from '@/components/StreakShieldIndicator';
 import { Card } from '@/types/card';
 import { playLevelCompleteSound, playStreakSound } from '@/lib/audio';
 import {
@@ -39,6 +40,7 @@ export default function DailyChallengesPage() {
     getDailyCompletionCount,
     hasReward,
     isShieldAvailable,
+    playerName,
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
@@ -308,11 +310,9 @@ export default function DailyChallengesPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-xl font-bold text-purple-600">{score}</div>
-                  {streak > 0 && (
-                    <div className="text-sm text-orange-500 font-medium">
-                      🔥 {streak}x
-                    </div>
-                  )}
+                  <div className="flex items-center justify-end">
+                    <StreakShieldIndicator streak={streak} isShieldAvailable={isShieldAvailable()} />
+                  </div>
                 </div>
               </div>
               {/* Progress bar */}
@@ -340,6 +340,7 @@ export default function DailyChallengesPage() {
               hasDoubleMasteryBonus={hasReward('doubleMasteryXP')}
               hasSpeedBonusReward={hasReward('speedBonus')}
               isShieldAvailable={isShieldAvailable()}
+              playerName={playerName}
             />
           </div>
         )}

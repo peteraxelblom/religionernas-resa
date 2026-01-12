@@ -10,7 +10,7 @@ interface ProvidersProps {
 }
 
 function LevelUpDetector() {
-  const { getPlayerLevel } = useGameStore();
+  const { getPlayerLevel, playerName } = useGameStore();
   const playerLevel = getPlayerLevel();
   const previousLevelRef = useRef<number | null>(null);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; previousLevel: number } | null>(null);
@@ -40,6 +40,7 @@ function LevelUpDetector() {
       newLevel={levelUpData.newLevel}
       previousLevel={levelUpData.previousLevel}
       onClose={() => setLevelUpData(null)}
+      playerName={playerName}
     />
   );
 }

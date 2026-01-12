@@ -8,6 +8,7 @@ interface LevelUpModalProps {
   newLevel: number;
   previousLevel: number;
   onClose: () => void;
+  playerName?: string;
 }
 
 // Simple confetti particle component
@@ -31,7 +32,7 @@ function ConfettiParticle({ delay, color, randomX, randomRotate }: { delay: numb
   );
 }
 
-export default function LevelUpModal({ newLevel, previousLevel, onClose }: LevelUpModalProps) {
+export default function LevelUpModal({ newLevel, previousLevel, onClose, playerName }: LevelUpModalProps) {
   const [showConfetti, setShowConfetti] = useState(true);
   const reward = getRewardAtLevel(newLevel);
   const newTitle = getTitleForLevel(newLevel);
@@ -113,7 +114,7 @@ export default function LevelUpModal({ newLevel, previousLevel, onClose }: Level
               className="relative"
             >
               <p className="text-white/90 font-bold text-lg uppercase tracking-widest mb-2">
-                Level up!
+                {playerName ? `Grattis, ${playerName}!` : 'Level up!'}
               </p>
             </motion.div>
 

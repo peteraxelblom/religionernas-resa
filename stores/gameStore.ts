@@ -84,7 +84,7 @@ export const useGameStore = create<GameState>()(
       // Default state
       version: 1,
       lastSaved: new Date().toISOString(),
-      playerName: 'Astor',
+      playerName: '',
       levelProgress: {},
       cardProgress: {},
       achievements: [],
@@ -116,11 +116,12 @@ export const useGameStore = create<GameState>()(
       lastShieldActivation: false,
 
       // Actions
-      initGame: (playerName = 'Astor') => {
+      initGame: (playerName?: string) => {
         const state = get();
         if (!state.sessionStartTime) {
           set({
-            playerName,
+            // Only update playerName if explicitly provided
+            ...(playerName !== undefined ? { playerName } : {}),
             sessionStartTime: Date.now(),
           });
           // Update daily streak on game start
@@ -519,7 +520,7 @@ export const useGameStore = create<GameState>()(
       // Reset
       resetGame: () => {
         set({
-          ...createDefaultSaveData('Astor'),
+          ...createDefaultSaveData(''),
           currentStreak: 0,
           sessionStartTime: null,
         });

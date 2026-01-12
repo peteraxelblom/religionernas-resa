@@ -18,6 +18,7 @@ export interface FeedbackContext {
   hasDoubleMasteryBonus?: boolean; // Player has Level 12+ reward
   hasSpeedBonus?: boolean; // Player earned speed bonus (Level 20+ fast answer on known card)
   shieldActivated?: boolean; // Shield protected the streak from breaking
+  playerName?: string; // Player's name for personalized messages
 }
 
 export interface FeedbackMessage {
@@ -84,15 +85,16 @@ function isNearMiss(userAnswer?: string, correctAnswer?: string): boolean {
 }
 
 export function getFeedbackMessage(context: FeedbackContext): FeedbackMessage {
-  const { correct, responseTimeMs, streak, previousBucket, newBucket, userAnswer, correctAnswer, hasDoubleMasteryBonus, hasSpeedBonus } = context;
+  const { correct, responseTimeMs, streak, previousBucket, newBucket, userAnswer, correctAnswer, hasDoubleMasteryBonus, hasSpeedBonus, playerName } = context;
 
   // Check for mastery celebration (Theory of Fun - "grokking")
   if (correct && newBucket === 'mastered' && previousBucket !== 'mastered') {
     const xpAmount = hasDoubleMasteryBonus ? 50 : 25;
     const bonusText = hasDoubleMasteryBonus ? ' (2x bonus!)' : '';
+    const namePrefix = playerName ? `${playerName}, ` : '';
     return {
       title: pickRandom(MASTERY_MESSAGES),
-      subtitle: `Du behärskar det här kortet! +${xpAmount} XP${bonusText}`,
+      subtitle: `${namePrefix}du behärskar det här kortet! +${xpAmount} XP${bonusText}`,
       isMastery: true,
     };
   }
@@ -102,9 +104,10 @@ export function getFeedbackMessage(context: FeedbackContext): FeedbackMessage {
     const streakThreshold = [10, 7, 5, 3].find(t => streak >= t);
     if (streakThreshold && STREAK_MESSAGES[streakThreshold]) {
       const speedBonusText = hasSpeedBonus ? ' ⚡+5 XP' : '';
+      const namePrefix = playerName ? `${playerName}, ` : '';
       return {
         title: pickRandom(STREAK_MESSAGES[streakThreshold]),
-        subtitle: `${streak} rätt i rad!${speedBonusText}`,
+        subtitle: `${namePrefix}${streak} rätt i rad!${speedBonusText}`,
       };
     }
 
@@ -122,18 +125,20 @@ export function getFeedbackMessage(context: FeedbackContext): FeedbackMessage {
 
   // Wrong answer - check if shield activated
   if (context.shieldActivated) {
+    const nameText = playerName ? `, ${playerName}` : '';
     return {
       title: '🛡️ SKÖLDEN SKYDDADE!',
-      subtitle: 'Din streak är bevarad! Skölden är förbrukad idag.',
+      subtitle: `Din streak är bevarad${nameText}! Skölden är förbrukad idag.`,
       isShieldActivated: true,
     };
   }
 
   // Regular wrong answer
   if (isNearMiss(userAnswer, correctAnswer)) {
+    const namePrefix = playerName ? `${playerName}, d` : 'D';
     return {
       title: NEAR_MISS_MESSAGE,
-      subtitle: `Du skrev "${userAnswer}" - rätt svar: "${correctAnswer}"`,
+      subtitle: `${namePrefix}u skrev "${userAnswer}" - rätt svar: "${correctAnswer}"`,
     };
   }
 

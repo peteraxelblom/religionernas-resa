@@ -6,42 +6,33 @@ Unresolved tensions, future considerations, and ideas to explore.
 
 ## Reward System Tensions
 
-### Speed Bonus (Level 20) - Implementation Needed
+### ✅ Speed Bonus (Level 20) - RESOLVED
 
-**Current state:** Defined in `playerLevel.ts` but not implemented.
-
-**Questions:**
-- What counts as "fast"? 3 seconds? 5 seconds?
-- Should it scale with question difficulty?
-- Risk: Encouraging speed over learning?
-
-**Koster concern:** Speed pressure might shift focus from pattern learning to reflexive answering.
-
-**Possible solution:** Only award speed bonus for cards already in bucket 3+, where the player has demonstrated understanding.
+**Resolution (Jan 2025):**
+- Implemented in `calculateSpeedBonus()` in `playerLevel.ts`
+- Threshold: 3 seconds for fast answers
+- Only applies to cards in `reviewing` or `mastered` bucket (bucket 3+)
+- Awards flat +5 XP bonus
+- UI feedback: "⚡ Snabbhetsbonus +5 XP!" shown in FlashCard feedback
 
 ---
 
-### Streak Shield Usage UX
+### ✅ Streak Shield Usage UX - RESOLVED
 
-**Current state:** Shield exists but no UI to activate it.
-
-**Questions:**
-- Automatic use when streak would break?
-- Manual button to "activate shield for this session"?
-- Visual indicator that shield is active/available?
-
-**Trade-off:** Automatic feels supportive but removes player agency. Manual creates decision but might feel punishing if forgotten.
+**Resolution (Jan 2025):**
+- **Automatic activation** when streak would break (no manual button needed)
+- Visual indicator: 🛡️ icon shown in level/boss/daily/review headers when shield is available
+- When triggered: Shows "🛡️ SKÖLDEN SKYDDADE!" feedback message
+- Resets daily (one use per day)
 
 ---
 
-### Double Mastery Bonus (Level 12) - Not Visible
+### ✅ Double Mastery Bonus (Level 12) - RESOLVED
 
-**Current state:** Applied in `addXP` but player can't see when it triggers.
-
-**Questions:**
-- Should mastery moments show "2x XP!" indicator?
-- Is this reward too subtle to notice?
-- Does it need celebration?
+**Resolution (Jan 2025):**
+- Applied in `recordCardAnswer` via `applyMasteryBonus()`
+- Visible in mastery celebration: "+50 XP (2x bonus!)" subtitle
+- Combined with mastery celebration animation and sound
 
 ---
 

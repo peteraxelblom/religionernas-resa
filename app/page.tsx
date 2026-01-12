@@ -7,17 +7,27 @@ import { useGameStore } from '@/stores/gameStore';
 import { cardStats } from '@/data/cards';
 import { levels } from '@/data/levels';
 import PlayerLevelCard from '@/components/PlayerLevelCard';
+import NameInputModal from '@/components/NameInputModal';
 import { STRINGS } from '@/lib/strings/sv';
 
 export default function Home() {
-  const { initGame, stats, levelProgress, getDueCardsCount, getMasteredCardsCount, resetGame } = useGameStore();
+  const {
+    initGame,
+    stats,
+    levelProgress,
+    getDueCardsCount,
+    getMasteredCardsCount,
+    resetGame,
+    playerName,
+    setPlayerName,
+  } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
-    initGame('Astor');
+    initGame();
   }, [initGame]);
 
   if (!mounted) {
@@ -28,6 +38,11 @@ export default function Home() {
     );
   }
 
+  // Show name input modal if player hasn't entered their name yet
+  if (!playerName) {
+    return <NameInputModal onSubmit={setPlayerName} />;
+  }
+
   const completedLevels = Object.values(levelProgress).filter(l => l.completed).length;
   const totalLevels = levels.length;
   const dueCards = getDueCardsCount();
@@ -36,7 +51,7 @@ export default function Home() {
   return (
     <main className="min-h-screen p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
+        {/* Header with personalized welcome */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -46,7 +61,7 @@ export default function Home() {
             Religionernas Resa
           </h1>
           <p className="text-gray-600">
-            Lär dig om judendom, kristendom och islam!
+            Välkommen tillbaka, <span className="font-semibold text-purple-600">{playerName}</span>!
           </p>
         </motion.div>
 
