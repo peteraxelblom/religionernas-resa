@@ -52,30 +52,6 @@ If any step is broken, the player disengages.
 
 ---
 
-## Documentation Structure
-
-For detailed theory, decisions, and patterns, see:
-
-- **`/docs/design/cook-koster-synthesis.md`** - Full breakdown of theories
-- **`/docs/design/decisions.md`** - Design decisions and rationale
-- **`/docs/design/patterns.md`** - Reusable game design patterns
-- **`/docs/design/open-questions.md`** - Unresolved tensions to explore
-
----
-
-## Workflow Instruction
-
-**When we discover design insights during development:**
-
-1. Add significant patterns to `/docs/design/patterns.md`
-2. Log design decisions in `/docs/design/decisions.md`
-3. Update theory connections in `/docs/design/cook-koster-synthesis.md`
-4. Note unresolved questions in `/docs/design/open-questions.md`
-
-This preserves institutional knowledge across sessions.
-
----
-
 ## Project Context
 
 **Religionernas Resa** is an educational flashcard game teaching Swedish students about Judaism, Christianity, and Islam. It uses:
@@ -84,8 +60,44 @@ This preserves institutional knowledge across sessions.
 - **Level Progression** - 39 levels across religions with boss battles
 - **Player Level System** - XP converts to levels (1-25) with functional rewards
 - **Daily Challenges** - Adaptive difficulty based on performance
+- **First-Time Onboarding** - Guided flow with instant win in first 30 seconds
+- **Daily Rewards** - Mystery box with variable rewards to encourage return visits
 
 The target audience is children learning religious studies in Swedish schools.
+
+---
+
+## Key Features
+
+### First-Time User Experience
+New users go through a guided onboarding flow:
+1. **Name Input** - Personalized welcome
+2. **Guided First Card** - Tutorial question about Abrahamic religions
+3. **Celebration** - "FANTASTISKT!" with +10 XP and level reveal
+4. **Dashboard** - Ready to explore
+
+Key files: `FirstTimeFlow.tsx`, `GuidedFirstCard.tsx`, `FirstCardCelebration.tsx`
+
+### Daily Reward System
+Returning users can claim daily rewards:
+- **Mystery box** with shake/open animation
+- **Variable rewards**: 25-150 XP based on streak (days 1-7+)
+- **Bonus items**: Streak shields, hints with probability tiers
+
+Key files: `DailyRewardModal.tsx`, `stores/gameStore.ts` (dailyReward state)
+
+### Visual Juice
+- **ParticleBackground** - Floating particles on home screen
+- **Shimmer effects** - On XP progress bars
+- **Pulse glow** - On level badges
+- **Haptic feedback** - On interactions (mobile)
+
+### Audio
+All sounds synthesized with Web Audio API in `lib/audio.ts`:
+- `playCorrectSound()`, `playWrongSound()` - Answer feedback
+- `playMysteryBoxOpen()`, `playRewardReveal()` - Daily rewards
+- `playMasterySound()` - Card mastery celebration
+- `playLevelCompleteSound()`, `playBossVictorySound()` - Level completion
 
 ---
 
