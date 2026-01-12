@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardBucket } from '@/types/card';
 import { getBucketLabel } from '@/lib/spacedRepetition';
 import { playCorrectSound, playWrongSound, playMasterySound } from '@/lib/audio';
+import { hapticLight, hapticError, hapticCelebration, hapticStreak } from '@/lib/haptics';
 import { isCorrect as checkAnswerMatch, GradingRule } from '@/lib/answerMatching';
 import { getFeedbackMessage, getBucketTransitionMessage, FeedbackContext } from '@/lib/feedbackMessages';
 import { STRINGS } from '@/lib/strings/sv';
@@ -166,15 +167,22 @@ export default function FlashCard({
     setSelectedAnswer(answer);
     setIsFlipped(true);
 
-    // Play sound effect
+    // Play sound effect and haptic feedback
     if (correct) {
       if (feedback.isMastery) {
         playMasterySound();
+        hapticCelebration();
       } else {
         playCorrectSound();
+        hapticLight();
+        // Extra haptic for streak milestones
+        if (newSessionStreak > 0 && newSessionStreak % 5 === 0) {
+          hapticStreak(newSessionStreak);
+        }
       }
     } else {
       playWrongSound();
+      hapticError();
     }
 
     // Slight delay before calling onAnswer to show the result

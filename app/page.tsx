@@ -8,7 +8,13 @@ import { cardStats } from '@/data/cards';
 import { levels } from '@/data/levels';
 import PlayerLevelCard from '@/components/PlayerLevelCard';
 import NameInputModal from '@/components/NameInputModal';
+import WelcomeBackModal from '@/components/WelcomeBackModal';
 import { STRINGS } from '@/lib/strings/sv';
+import {
+  getReturningPlayerStatus,
+  wasWelcomeBackShownToday,
+  markWelcomeBackShown,
+} from '@/lib/returningPlayer';
 
 export default function Home() {
   const {
@@ -23,12 +29,28 @@ export default function Home() {
   } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [returningStatus, setReturningStatus] = useState<ReturnType<typeof getReturningPlayerStatus> | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
     setMounted(true);
     initGame();
   }, [initGame]);
+
+  // Check for returning player after mount
+  useEffect(() => {
+    if (!mounted || !playerName) return;
+
+    const status = getReturningPlayerStatus(stats.lastPlayDate, stats.currentDailyStreak);
+
+    if (status.isReturning && !wasWelcomeBackShownToday()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- One-time initialization based on localStorage check
+      setReturningStatus(status);
+      setShowWelcomeBack(true);
+      markWelcomeBackShown();
+    }
+  }, [mounted, playerName, stats.lastPlayDate, stats.currentDailyStreak]);
 
   if (!mounted) {
     return (
@@ -210,6 +232,18 @@ export default function Home() {
             Börja om från början
           </button>
         </motion.div>
+
+        {/* Welcome back modal */}
+        {showWelcomeBack && returningStatus && (
+          <WelcomeBackModal
+            playerName={playerName}
+            daysAway={returningStatus.daysAway}
+            dueCards={dueCards}
+            streakStatus={returningStatus.streakStatus}
+            previousStreak={returningStatus.previousStreak}
+            onClose={() => setShowWelcomeBack(false)}
+          />
+        )}
 
         {/* Reset confirmation modal */}
         {showResetConfirm && (
