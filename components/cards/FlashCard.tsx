@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardBucket } from '@/types/card';
 import { getBucketLabel } from '@/lib/spacedRepetition';
@@ -9,6 +9,8 @@ import { hapticLight, hapticError, hapticCelebration, hapticStreak } from '@/lib
 import { isCorrect as checkAnswerMatch, GradingRule } from '@/lib/answerMatching';
 import { getFeedbackMessage, getBucketTransitionMessage, FeedbackContext } from '@/lib/feedbackMessages';
 import { STRINGS } from '@/lib/strings/sv';
+import SwipeTrueFalse from './SwipeTrueFalse';
+import DraggableMultipleChoice from './DraggableMultipleChoice';
 
 interface FlashCardProps {
   card: Card;
@@ -22,6 +24,7 @@ interface FlashCardProps {
   hasSpeedBonusReward?: boolean; // Player has Level 20+ reward for speed bonus
   isShieldAvailable?: boolean; // Streak shield available for use
   playerName?: string; // Player's name for personalized feedback
+  useGestures?: boolean; // Enable swipe/drag gestures for answering (default: true)
 }
 
 export default function FlashCard({
@@ -35,6 +38,7 @@ export default function FlashCard({
   hasSpeedBonusReward = false,
   isShieldAvailable = false,
   playerName,
+  useGestures = true,
 }: FlashCardProps) {
   const [, setIsFlipped] = useState(false); // isFlipped tracked for state management
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -48,6 +52,19 @@ export default function FlashCard({
     isMastery?: boolean;
     bucketTransition?: string;
   } | null>(null);
+  const [manualHint, setManualHint] = useState(false);
+
+  // Keyboard shortcut: H to show hint
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'h' && card.hint && isCorrect === null) {
+        setManualHint(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [card.hint, isCorrect]);
 
   // Shuffle multiple choice options to prevent learning positions instead of content
   // Uses card.id as seed for consistent shuffle per card during session
@@ -70,6 +87,7 @@ export default function FlashCard({
     setUserInput('');
     setIsCorrect(null);
     setFeedbackMessage(null);
+    setManualHint(false);
     startTimeRef.current = Date.now();
   }, [card.id]);
 
@@ -229,6 +247,19 @@ export default function FlashCard({
   const renderAnswerInput = () => {
     switch (card.type) {
       case 'multiple_choice':
+        // Use draggable multiple choice if gestures enabled
+        if (useGestures && shuffledOptions) {
+          return (
+            <DraggableMultipleChoice
+              options={shuffledOptions}
+              correctAnswer={card.answer}
+              onAnswer={handleAnswer}
+              disabled={isCorrect !== null}
+              selectedAnswer={selectedAnswer}
+            />
+          );
+        }
+        // Fallback to click-based buttons
         return (
           <div className="grid grid-cols-1 gap-3 mt-6">
             {shuffledOptions?.map((option, index) => (
@@ -255,6 +286,18 @@ export default function FlashCard({
         );
 
       case 'true_false':
+        // Use swipe true/false if gestures enabled
+        if (useGestures) {
+          return (
+            <SwipeTrueFalse
+              onAnswer={handleAnswer}
+              disabled={isCorrect !== null}
+              correctAnswer={card.answer}
+              selectedAnswer={selectedAnswer}
+            />
+          );
+        }
+        // Fallback to click-based buttons
         return (
           <div className="flex gap-4 mt-6 justify-center">
             {['Sant', 'Falskt'].map((option) => (
@@ -341,9 +384,18 @@ export default function FlashCard({
             </span>
           )}
         </div>
-        {card.hint && isCorrect === null && forceShowHint && (
-          <span className="text-sm text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
+        {card.hint && isCorrect === null && (forceShowHint || manualHint) && (
+          <motion.span
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-sm text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded"
+          >
             💡 Tips: {card.hint}
+          </motion.span>
+        )}
+        {card.hint && isCorrect === null && !forceShowHint && !manualHint && (
+          <span className="text-xs text-gray-400" title="Tryck H för tips">
+            [H] Tips
           </span>
         )}
       </div>
