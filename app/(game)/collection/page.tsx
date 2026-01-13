@@ -9,12 +9,13 @@ import { artifacts, getUnlockedArtifacts, getArtifactProgress } from '@/data/art
 import CollectionCard from '@/components/CollectionCard';
 import { ArtifactShowcase, ArtifactProgressBar } from '@/components/ArtifactDisplay';
 import { Religion } from '@/types/card';
+import { achievements, getAchievementById } from '@/data/achievements';
 
-type TabType = 'cards' | 'artifacts';
+type TabType = 'cards' | 'artifacts' | 'achievements';
 type FilterType = 'all' | Religion;
 
 export default function CollectionPage() {
-  const { cardProgress } = useGameStore();
+  const { cardProgress, unlockedAchievements } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('cards');
   const [filter, setFilter] = useState<FilterType>('all');
@@ -71,6 +72,13 @@ export default function CollectionPage() {
   const unlockedArtifacts = useMemo(() => {
     return getUnlockedArtifacts(stats.mastered);
   }, [stats.mastered]);
+
+  // Get unlocked achievement details
+  const unlockedAchievementsList = useMemo(() => {
+    return (unlockedAchievements || [])
+      .map(id => getAchievementById(id))
+      .filter((a): a is NonNullable<typeof a> => a !== undefined);
+  }, [unlockedAchievements]);
 
   if (!mounted) {
     return (
@@ -156,7 +164,7 @@ export default function CollectionPage() {
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setActiveTab('cards')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -166,6 +174,16 @@ export default function CollectionPage() {
             }`}
           >
             📚 Kort ({stats.mastered}/{stats.total})
+          </button>
+          <button
+            onClick={() => setActiveTab('achievements')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'achievements'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            🏅 Prestationer ({unlockedAchievementsList.length}/{achievements.length})
           </button>
           <button
             onClick={() => setActiveTab('artifacts')}
@@ -238,6 +256,93 @@ export default function CollectionPage() {
                 <div className="text-center py-12 text-gray-500">
                   <span className="text-4xl block mb-4">🔍</span>
                   <p>Inga kort matchar dina filter</p>
+                </div>
+              )}
+            </motion.div>
+          ) : activeTab === 'achievements' ? (
+            <motion.div
+              key="achievements"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              {/* Achievement categories */}
+              <div className="space-y-6">
+                {['progress', 'skill', 'streak', 'special'].map((category) => {
+                  const categoryAchievements = achievements.filter(a => a.category === category);
+                  const categoryLabel = {
+                    progress: { name: 'Framsteg', emoji: '📈' },
+                    skill: { name: 'Skicklighet', emoji: '⚡' },
+                    streak: { name: 'Streak', emoji: '🔥' },
+                    special: { name: 'Speciella', emoji: '✨' },
+                  }[category]!;
+
+                  return (
+                    <div key={category}>
+                      <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <span>{categoryLabel.emoji}</span>
+                        {categoryLabel.name}
+                      </h2>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {categoryAchievements.map((achievement, index) => {
+                          const isUnlocked = unlockedAchievementsList.some(a => a.id === achievement.id);
+
+                          return (
+                            <motion.div
+                              key={achievement.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.03 }}
+                              className={`
+                                p-4 rounded-xl border-2 flex items-center gap-4
+                                ${isUnlocked
+                                  ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200'
+                                  : 'bg-gray-50 border-gray-200 opacity-60'
+                                }
+                              `}
+                            >
+                              <div className={`
+                                w-14 h-14 rounded-full flex items-center justify-center text-3xl
+                                ${isUnlocked
+                                  ? 'bg-gradient-to-br from-amber-400 to-yellow-400 shadow-lg'
+                                  : 'bg-gray-200'
+                                }
+                              `}>
+                                {isUnlocked ? achievement.icon : '🔒'}
+                              </div>
+
+                              <div className="flex-1">
+                                <h3 className={`font-bold ${isUnlocked ? 'text-gray-800' : 'text-gray-400'}`}>
+                                  {achievement.nameSv}
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                  {achievement.description}
+                                </p>
+                              </div>
+
+                              {isUnlocked && (
+                                <motion.span
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="text-green-500 text-2xl"
+                                >
+                                  ✓
+                                </motion.span>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {unlockedAchievementsList.length === 0 && (
+                <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-100 mt-4">
+                  <span className="text-4xl block mb-4">🏅</span>
+                  <p className="font-medium">Inga prestationer ännu!</p>
+                  <p className="text-sm mt-2">Fortsätt spela för att låsa upp prestationer</p>
                 </div>
               )}
             </motion.div>

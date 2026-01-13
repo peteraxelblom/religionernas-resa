@@ -32,15 +32,10 @@ export function updateCardProgress(
   if (correct) {
     updated.correctStreak = progress.correctStreak + 1;
 
-    // Move to next bucket based on streak and speed
-    if (wasQuick) {
-      updated.bucket = getNextBucket(progress.bucket, progress.correctStreak + 1);
-    } else {
-      // Slower response - move up more gradually
-      if (progress.correctStreak >= 1) {
-        updated.bucket = getNextBucket(progress.bucket, progress.correctStreak + 1);
-      }
-    }
+    // Move to next bucket based on streak
+    // The bucket thresholds (streak ≥2 for reviewing, ≥4 for mastered)
+    // already ensure sufficient practice before advancement
+    updated.bucket = getNextBucket(progress.bucket, progress.correctStreak + 1);
 
     // Set next review based on bucket
     updated.nextReview = calculateNextReview(updated.bucket);
