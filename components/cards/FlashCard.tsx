@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardBucket } from '@/types/card';
 import { getBucketLabel } from '@/lib/spacedRepetition';
@@ -49,19 +49,8 @@ export default function FlashCard({
     bucketTransition?: string;
   } | null>(null);
 
-  // Shuffle multiple choice options to prevent learning positions instead of content
-  // Uses card.id as seed for consistent shuffle per card during session
-  const shuffledOptions = useMemo(() => {
-    if (!card.options || card.type !== 'multiple_choice') return card.options;
-
-    // Create a simple hash from card.id for seeded shuffle
-    const seed = card.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-    return [...card.options]
-      .map((option, i) => ({ option, sort: Math.sin(seed * 100 + i * 17) }))
-      .sort((a, b) => a.sort - b.sort)
-      .map(({ option }) => option);
-  }, [card.id, card.options, card.type]);
+  // Shuffled options stored in state - reshuffled each time card.id changes
+  const [shuffledOptions, setShuffledOptions] = useState<string[] | undefined>(card.options);
 
   useEffect(() => {
     // Reset state when card changes
@@ -71,7 +60,19 @@ export default function FlashCard({
     setIsCorrect(null);
     setFeedbackMessage(null);
     startTimeRef.current = Date.now();
-  }, [card.id]);
+
+    // Shuffle multiple choice options using Fisher-Yates
+    if (card.options && card.type === 'multiple_choice') {
+      const shuffled = [...card.options];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      setShuffledOptions(shuffled);
+    } else {
+      setShuffledOptions(card.options);
+    }
+  }, [card.id, card.options, card.type]);
 
   const checkAnswer = (answer: string): boolean => {
     const normalizedAnswer = answer.toLowerCase().trim();
