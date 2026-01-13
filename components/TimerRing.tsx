@@ -9,6 +9,8 @@ interface TimerRingProps {
   isPaused?: boolean;
   onTimeUp?: () => void;
   onTick?: (remainingMs: number) => void;
+  onDisable?: (mode: 'snooze' | 'session') => void;
+  allowDisable?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showTimeText?: boolean;
   className?: string;
@@ -26,6 +28,8 @@ export default function TimerRing({
   isPaused = false,
   onTimeUp,
   onTick,
+  onDisable,
+  allowDisable = true,
   size = 'md',
   showTimeText = true,
   className = '',
@@ -33,6 +37,7 @@ export default function TimerRing({
   const [remainingMs, setRemainingMs] = useState(durationMs);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
+  const [showDisableMenu, setShowDisableMenu] = useState(false);
 
   const { dimension, strokeWidth, fontSize } = sizeConfig[size];
   const radius = (dimension - strokeWidth) / 2;
@@ -110,67 +115,144 @@ export default function TimerRing({
   const isUrgent = progress <= 0.25;
   const isCritical = progress <= 0.1;
 
+  const handleTimerClick = () => {
+    if (allowDisable && onDisable) {
+      setShowDisableMenu(true);
+    }
+  };
+
+  const handleDisable = (mode: 'snooze' | 'session') => {
+    setShowDisableMenu(false);
+    if (onDisable) {
+      onDisable(mode);
+    }
+  };
+
   return (
-    <div className={`relative inline-flex items-center justify-center ${className}`}>
-      {/* Background circle */}
-      <svg
-        width={dimension}
-        height={dimension}
-        className={`transform -rotate-90 ${isCritical ? 'animate-pulse' : ''}`}
+    <>
+      <div
+        className={`relative inline-flex items-center justify-center ${className} ${allowDisable && onDisable ? 'cursor-pointer' : ''}`}
+        onClick={handleTimerClick}
+        title={allowDisable && onDisable ? 'Tryck för att stänga av timern' : undefined}
       >
-        {/* Background track */}
-        <circle
-          cx={dimension / 2}
-          cy={dimension / 2}
-          r={radius}
-          fill="none"
-          stroke={color.bg}
-          strokeWidth={strokeWidth}
-        />
-
-        {/* Progress arc */}
-        <motion.circle
-          cx={dimension / 2}
-          cy={dimension / 2}
-          r={radius}
-          fill="none"
-          stroke={color.stroke}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          style={{
-            filter: isUrgent ? `drop-shadow(0 0 4px ${color.stroke})` : 'none',
-          }}
-        />
-      </svg>
-
-      {/* Time text */}
-      {showTimeText && (
-        <motion.span
-          className={`absolute ${fontSize} font-bold`}
-          style={{ color: color.stroke }}
-          animate={isCritical ? { scale: [1, 1.1, 1] } : {}}
-          transition={{ duration: 0.3, repeat: Infinity }}
+        {/* Background circle */}
+        <svg
+          width={dimension}
+          height={dimension}
+          className={`transform -rotate-90 ${isCritical ? 'animate-pulse' : ''}`}
         >
-          {formatTime(remainingMs)}
-        </motion.span>
-      )}
-
-      {/* Urgent glow effect */}
-      <AnimatePresence>
-        {isCritical && (
-          <motion.div
-            initial={{ opacity: 0, scale: 1 }}
-            animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.3, 1] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, repeat: Infinity }}
-            className="absolute inset-0 rounded-full"
-            style={{ border: `2px solid ${color.stroke}` }}
+          {/* Background track */}
+          <circle
+            cx={dimension / 2}
+            cy={dimension / 2}
+            r={radius}
+            fill="none"
+            stroke={color.bg}
+            strokeWidth={strokeWidth}
           />
+
+          {/* Progress arc */}
+          <motion.circle
+            cx={dimension / 2}
+            cy={dimension / 2}
+            r={radius}
+            fill="none"
+            stroke={color.stroke}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            style={{
+              filter: isUrgent ? `drop-shadow(0 0 4px ${color.stroke})` : 'none',
+            }}
+          />
+        </svg>
+
+        {/* Time text */}
+        {showTimeText && (
+          <motion.span
+            className={`absolute ${fontSize} font-bold`}
+            style={{ color: color.stroke }}
+            animate={isCritical ? { scale: [1, 1.1, 1] } : {}}
+            transition={{ duration: 0.3, repeat: Infinity }}
+          >
+            {formatTime(remainingMs)}
+          </motion.span>
+        )}
+
+        {/* Urgent glow effect */}
+        <AnimatePresence>
+          {isCritical && (
+            <motion.div
+              initial={{ opacity: 0, scale: 1 }}
+              animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.3, 1] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+              className="absolute inset-0 rounded-full"
+              style={{ border: `2px solid ${color.stroke}` }}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Disable timer overlay */}
+      <AnimatePresence>
+        {showDisableMenu && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowDisableMenu(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-4">
+                <span className="text-4xl block mb-2">⏱️</span>
+                <h3 className="text-xl font-bold text-gray-800">Stänga av timern?</h3>
+                <p className="text-gray-600 text-sm mt-2">
+                  Spela utan tidsgräns - du lär dig bäst i din egen takt!
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleDisable('snooze')}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-amber-400 to-orange-400 text-white font-bold rounded-xl shadow hover:shadow-lg transition-shadow flex items-center justify-center gap-2"
+                >
+                  <span>😴</span>
+                  <span>Stäng av för denna nivå</span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleDisable('session')}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl shadow hover:shadow-lg transition-shadow flex items-center justify-center gap-2"
+                >
+                  <span>✨</span>
+                  <span>Stäng av för hela sessionen</span>
+                </motion.button>
+
+                <button
+                  onClick={() => setShowDisableMenu(false)}
+                  className="w-full py-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                >
+                  Behåll timern
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
 

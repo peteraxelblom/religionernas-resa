@@ -59,6 +59,14 @@ export default function LevelPage() {
   const [lostStreakValue, setLostStreakValue] = useState(0);
   const [showCloseCall, setShowCloseCall] = useState<'time' | 'streak' | 'lastLife' | null>(null);
   const [wasCloseToTimeLimit, setWasCloseToTimeLimit] = useState(false);
+  const [timerDisabledForLevel, setTimerDisabledForLevel] = useState(false);
+  const [timerDisabledForSession, setTimerDisabledForSession] = useState(() => {
+    // Check sessionStorage for session-wide timer disable
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('timerDisabled') === 'true';
+    }
+    return false;
+  });
 
   // Pre-computed confetti properties for stable rendering
   const [confettiProps] = useState(() =>
@@ -144,6 +152,20 @@ export default function LevelPage() {
   const handleTimeUp = useCallback(() => {
     setShowTimesUp(true);
     setWasCloseToTimeLimit(true);
+  }, []);
+
+  // Handle timer disable request from FlashCard
+  const handleTimerDisable = useCallback((mode: 'snooze' | 'session') => {
+    if (mode === 'snooze') {
+      // Disable for this level only
+      setTimerDisabledForLevel(true);
+    } else {
+      // Disable for entire session
+      setTimerDisabledForSession(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('timerDisabled', 'true');
+      }
+    }
   }, []);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
@@ -541,10 +563,11 @@ export default function LevelPage() {
               isShieldAvailable={isShieldAvailable()}
               playerName={playerName}
               // Timer configuration (Alternative B: Tension mechanics)
-              // Enable timer by default for all levels in this branch to demonstrate the feature
-              timerEnabled={level?.timerEnabled ?? true}
+              // Enable timer by default unless disabled by user for this level or session
+              timerEnabled={(level?.timerEnabled ?? true) && !timerDisabledForLevel && !timerDisabledForSession}
               timePerQuestionMs={level?.timePerQuestionMs ?? 15000}
               onTimeUp={handleTimeUp}
+              onTimerDisable={handleTimerDisable}
             />
           )
         )}

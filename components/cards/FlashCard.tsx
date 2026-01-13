@@ -27,6 +27,7 @@ interface FlashCardProps {
   timerEnabled?: boolean; // Whether to show countdown timer
   timePerQuestionMs?: number; // Time limit per question in milliseconds
   onTimeUp?: () => void; // Called when timer expires (before auto-wrong answer)
+  onTimerDisable?: (mode: 'snooze' | 'session') => void; // Called when user taps timer to disable it
 }
 
 export default function FlashCard({
@@ -43,6 +44,7 @@ export default function FlashCard({
   timerEnabled = false,
   timePerQuestionMs = 15000,
   onTimeUp,
+  onTimerDisable,
 }: FlashCardProps) {
   const [, setIsFlipped] = useState(false); // isFlipped tracked for state management
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -397,6 +399,8 @@ export default function FlashCard({
             isActive={isCorrect === null}
             onTimeUp={handleTimeUp}
             onTick={handleTimerTick}
+            onDisable={onTimerDisable}
+            allowDisable={!!onTimerDisable}
             size="md"
             showTimeText={true}
           />
