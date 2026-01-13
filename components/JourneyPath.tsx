@@ -256,18 +256,6 @@ export default function JourneyPath({
             isAnimating={true}
             showGlow={true}
           />
-
-          {/* "Du är här" label */}
-          <motion.div
-            className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap"
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <span className="text-xs font-bold text-purple-600 bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
-              Du är här!
-            </span>
-          </motion.div>
         </motion.div>
       )}
     </>
