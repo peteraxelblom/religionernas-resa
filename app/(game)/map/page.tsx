@@ -123,6 +123,7 @@ export default function MapPage() {
             completedLevelIds={completedLevelIds}
             currentLevelId={nextLevel?.id}
             containerRef={mapContainerRef}
+            avatarId={avatarId}
           />
 
           {/* Group levels by religion */}

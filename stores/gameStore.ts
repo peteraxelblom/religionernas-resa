@@ -34,7 +34,7 @@ interface GameState extends SavedGameData {
 
   // Onboarding state (persisted)
   hasCompletedOnboarding: boolean;
-  onboardingStep: 'naming' | 'firstCard' | 'celebration' | null;
+  onboardingStep: 'naming' | 'avatar' | 'firstCard' | 'celebration' | null;
 
   // Daily reward state (persisted)
   dailyReward: {
@@ -84,8 +84,9 @@ interface GameState extends SavedGameData {
 
   // Onboarding
   completeOnboarding: () => void;
-  setOnboardingStep: (step: 'naming' | 'firstCard' | 'celebration' | null) => void;
-  startOnboarding: (name: string) => void; // Combined action: set name + advance to firstCard
+  setOnboardingStep: (step: 'naming' | 'avatar' | 'firstCard' | 'celebration' | null) => void;
+  startOnboarding: (name: string) => void; // Combined action: set name + advance to avatar picker
+  selectAvatarAndAdvance: (avatarId: string) => void; // Set avatar + advance to firstCard
 
   // Daily Reward
   canClaimDailyReward: () => boolean;
@@ -467,7 +468,12 @@ export const useGameStore = create<GameState>()(
       startOnboarding: (name) => {
         // Atomic update: set both playerName and onboardingStep in single state change
         // This prevents race conditions with persist middleware
-        set({ playerName: name, onboardingStep: 'firstCard' });
+        set({ playerName: name, onboardingStep: 'avatar' });
+      },
+
+      selectAvatarAndAdvance: (avatarId) => {
+        // Set avatar and advance to first card
+        set({ avatarId, onboardingStep: 'firstCard' });
       },
 
       // Daily Reward

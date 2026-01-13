@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Level } from '@/types/level';
+import PlayerAvatar from './PlayerAvatar';
 
 interface LevelNode {
   id: string;
@@ -17,6 +18,7 @@ interface JourneyPathProps {
   completedLevelIds: string[];
   currentLevelId?: string;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  avatarId?: string;
 }
 
 const religionColors: Record<Level['religion'], { primary: string; secondary: string }> = {
@@ -31,6 +33,7 @@ export default function JourneyPath({
   completedLevelIds,
   currentLevelId,
   containerRef,
+  avatarId,
 }: JourneyPathProps) {
   const [levelNodes, setLevelNodes] = useState<LevelNode[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -80,7 +83,8 @@ export default function JourneyPath({
     };
   }, [levels, completedLevelIds, containerRef]);
 
-  // Generate path segments between connected levels
+  // Generate path segments between consecutive levels in the same religion
+  // This creates clean vertical connections instead of a spider web
   const pathSegments = useMemo(() => {
     const segments: {
       id: string;
@@ -89,35 +93,37 @@ export default function JourneyPath({
       religion: Level['religion'];
     }[] = [];
 
-    // Sort levels by order to ensure correct path
-    const sortedLevels = [...levels].sort((a, b) => a.order - b.order);
+    // Group levels by religion and sort by order
+    const religionGroups: Record<string, typeof levels> = {};
+    levels.forEach((level) => {
+      if (!religionGroups[level.religion]) {
+        religionGroups[level.religion] = [];
+      }
+      religionGroups[level.religion].push(level);
+    });
 
-    sortedLevels.forEach((level) => {
-      if (!level.requiredLevel) return;
+    // Only connect consecutive levels within each religion group
+    Object.values(religionGroups).forEach((groupLevels) => {
+      const sorted = [...groupLevels].sort((a, b) => a.order - b.order);
 
-      const fromNode = levelNodes.find((n) => n.id === level.requiredLevel);
-      const toNode = levelNodes.find((n) => n.id === level.id);
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const fromLevel = sorted[i];
+        const toLevel = sorted[i + 1];
 
-      if (fromNode && toNode) {
-        // Create a curved path between nodes
-        const midX = (fromNode.x + toNode.x) / 2;
-        const midY = (fromNode.y + toNode.y) / 2;
-        const controlOffset = 20; // Curve amount
+        const fromNode = levelNodes.find((n) => n.id === fromLevel.id);
+        const toNode = levelNodes.find((n) => n.id === toLevel.id);
 
-        // Determine curve direction based on relative position
-        const dx = toNode.x - fromNode.x;
-        const dy = toNode.y - fromNode.y;
-        const perpX = -dy / Math.sqrt(dx * dx + dy * dy) * controlOffset;
-        const perpY = dx / Math.sqrt(dx * dx + dy * dy) * controlOffset;
+        if (fromNode && toNode) {
+          // Simple straight line (vertical connector)
+          const d = `M ${fromNode.x} ${fromNode.y} L ${toNode.x} ${toNode.y}`;
 
-        const d = `M ${fromNode.x} ${fromNode.y} Q ${midX + perpX} ${midY + perpY} ${toNode.x} ${toNode.y}`;
-
-        segments.push({
-          id: `${level.requiredLevel}-${level.id}`,
-          d,
-          completed: fromNode.completed,
-          religion: level.religion,
-        });
+          segments.push({
+            id: `${fromLevel.id}-${toLevel.id}`,
+            d,
+            completed: fromNode.completed,
+            religion: fromLevel.religion,
+          });
+        }
       }
     });
 
@@ -135,11 +141,15 @@ export default function JourneyPath({
     }, 0);
   }, [levelNodes]);
 
+  // Find current level node position for avatar overlay
+  const currentNode = levelNodes.find((n) => n.id === currentLevelId);
+
   if (levelNodes.length === 0 || dimensions.width === 0) {
     return null;
   }
 
   return (
+    <>
     <svg
       className="absolute inset-0 pointer-events-none z-0"
       width={dimensions.width}
@@ -207,46 +217,59 @@ export default function JourneyPath({
         </g>
       ))}
 
-      {/* Node indicators (small dots at level positions) */}
+      {/* Node indicators (small dots at level positions) - skip current level */}
       {levelNodes.map((node, index) => (
-        <motion.circle
-          key={node.id}
-          cx={node.x}
-          cy={node.y}
-          r={node.id === currentLevelId ? 8 : 5}
-          fill={
-            node.completed
-              ? religionColors[node.religion].primary
-              : node.id === currentLevelId
-              ? '#8b5cf6'
-              : '#9ca3af'
-          }
+        node.id === currentLevelId ? null : (
+          <motion.circle
+            key={node.id}
+            cx={node.x}
+            cy={node.y}
+            r={5}
+            fill={
+              node.completed
+                ? religionColors[node.religion].primary
+                : '#9ca3af'
+            }
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: index * 0.03 + 0.2 }}
+          />
+        )
+      ))}
+    </svg>
+
+      {/* Player avatar at current level - displayed as DOM overlay for rich styling */}
+      {currentNode && (
+        <motion.div
+          className="absolute z-20 pointer-events-none"
+          style={{
+            left: currentNode.x - 24,
+            top: currentNode.y - 24,
+          }}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: index * 0.03 + 0.2 }}
-        />
-      ))}
+          transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 }}
+        >
+          <PlayerAvatar
+            avatarId={avatarId}
+            size="lg"
+            isAnimating={true}
+            showGlow={true}
+          />
 
-      {/* Current level pulse indicator */}
-      {currentLevelId && levelNodes.find((n) => n.id === currentLevelId) && (
-        <motion.circle
-          cx={levelNodes.find((n) => n.id === currentLevelId)!.x}
-          cy={levelNodes.find((n) => n.id === currentLevelId)!.y}
-          r={15}
-          fill="none"
-          stroke="#8b5cf6"
-          strokeWidth={2}
-          animate={{
-            r: [15, 25, 15],
-            opacity: [0.8, 0, 0.8],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'easeOut',
-          }}
-        />
+          {/* "Du är här" label */}
+          <motion.div
+            className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <span className="text-xs font-bold text-purple-600 bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
+              Du är här!
+            </span>
+          </motion.div>
+        </motion.div>
       )}
-    </svg>
+    </>
   );
 }
