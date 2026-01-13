@@ -291,3 +291,127 @@ startOnboarding: (name) => {
 
 **Lesson Learned:**
 When using zustand persist middleware with multi-step flows, combine related state changes into atomic actions to prevent intermediate states from being persisted.
+
+---
+
+## Avatar System
+
+### Decision: Avatar Selection During Onboarding
+**Date:** January 2025
+**Status:** Implemented
+
+**Problem:**
+The game lacked player identity and personalization. Progress on the map was represented only by abstract level markers.
+
+**Analysis (Cook):**
+Missing identification with game character weakens emotional investment in progress.
+
+**Analysis (Koster):**
+Customization creates ownership. "This is MY journey" feels different from "this is A journey."
+
+**Solution:**
+- 6 character avatars: Explorer, Scholar, Sage, Seeker, Guide, Mystic
+- Selection happens during onboarding (after name, before first card)
+- Avatar appears on journey map at current level position
+- Avatar shown in PlayerLevelCard and celebrations
+
+**Technical note:**
+- Default avatar 'explorer' for existing saves (backwards compatible)
+- New onboarding step 'avatar' added between 'naming' and 'firstCard'
+- Avatar stored in gameStore.avatarId, persisted to localStorage
+
+---
+
+## Collection & Discovery
+
+### Decision: Collection Page with Three Tabs
+**Date:** January 2025
+**Status:** Implemented
+
+**Problem:**
+Players had no visibility into their overall card mastery or what they could collect. Progress felt invisible between levels.
+
+**Analysis (Cook):**
+Cards reaching mastery bucket produced no feedback. The Skill Atom ended abruptly.
+
+**Analysis (Koster):**
+Collecting creates a meta-game. "I have 47 of 200 cards" creates long-term goal structure.
+
+**Solution:**
+Collection page with three tabs:
+1. **Cards** - All cards with mastered/unmastered status, filter by religion
+2. **Achievements** - Grouped by category (progress, skill, streak, special)
+3. **Artifacts** - Unlock at mastery milestones
+
+**Key insight:**
+The collection transforms individual card mastery into visible cumulative progress.
+
+---
+
+### Decision: Artifact Unlocks at Mastery Milestones
+**Date:** January 2025
+**Status:** Implemented
+
+**Problem:**
+Mastering cards had no tangible reward beyond the mastery animation.
+
+**Solution:**
+14 artifacts unlocking at milestones:
+- 5 cards: Ancient Scroll
+- 10 cards: Menorah, Cross, Crescent (religion-specific)
+- 15 cards: Star of Abraham
+- 25 cards: Torah, Bible, Quran (religion-specific)
+- 40 cards: Star of David, Dove, Kaaba (religion-specific)
+- 60 cards: Lamp of Wisdom (legendary)
+- 80 cards: Globe of Unity (legendary)
+- 100 cards: Master's Key (legendary)
+
+**Rationale:**
+- Creates collecting meta-game
+- Religion-specific artifacts reward focused study
+- Legendary artifacts reward comprehensive mastery
+- Progress bar shows next artifact milestone
+
+---
+
+### Decision: Delayed Achievement Toast
+**Date:** January 2025
+**Status:** Implemented
+
+**Problem:**
+Achievement toasts would appear simultaneously with level complete celebrations, creating visual chaos.
+
+**Solution:**
+Add 2-second delay before showing achievement toast, allowing other celebrations to finish first.
+
+**Rationale:**
+- Celebrations should be sequential, not overlapping
+- The immediate celebration (level complete) takes priority
+- Achievement feels like a "bonus discovery" when shown after
+
+---
+
+## Journey Map Visualization
+
+### Decision: JourneyPath Component for Level Connections
+**Date:** January 2025
+**Status:** Implemented
+
+**Problem:**
+Level grid showed levels but no sense of journey or progression path.
+
+**Solution:**
+SVG-based JourneyPath showing:
+- Paths connecting consecutive levels within each religion
+- Completed paths as solid lines
+- Uncompleted paths as dashed lines
+- Player avatar at current level with glow effect
+- Larger nodes for boss battles
+
+**Design constraints:**
+- Only connect levels within same religion (no cross-religion lines)
+- Path colors match religion themes (blue/gold/green)
+- Avatar positioned as DOM overlay (not SVG) for rich animations
+
+**Rationale (Koster):**
+Visual journey metaphor makes progress tangible. "I've come this far" is more meaningful when you can see the path behind you.

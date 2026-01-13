@@ -157,6 +157,64 @@ See decisions.md "Variable Daily Rewards with Mystery Box" and patterns.md "Vari
 
 ---
 
+## Experimental Branches (In Progress)
+
+### Swipe Interactions (alt/swipe-interactions)
+
+**Status:** Branch exists, not yet merged
+
+**Features being tested:**
+- Swipe right = Sant, swipe left = Falskt for true/false cards
+- Drag-and-drop for multiple choice
+- Gesture-based interactions for more tactile feel
+
+**Open questions:**
+- Does swiping feel natural on mobile?
+- Is drag-and-drop intuitive for multiple choice?
+- How does accessibility work with gestures?
+
+---
+
+### Timer & Tension Mechanics (alt/tension-timers)
+
+**Status:** Branch exists, not yet merged
+
+**Features being tested:**
+- Visual countdown timer on cards
+- Tap-to-disable timer (for stressed kids)
+- Options: disable for level or disable for session
+
+**Open questions:**
+- Does timer add helpful urgency or harmful stress?
+- Is tap-to-disable discoverable enough?
+- Should timer be opt-in rather than opt-out?
+
+---
+
+## Collection & Avatar System
+
+### Avatar Customization Depth
+
+**Current state:** 6 fixed avatars chosen at onboarding.
+
+**Questions:**
+- Should players be able to change avatar later?
+- Unlockable avatars as rewards?
+- Avatar accessories or upgrades?
+
+---
+
+### Golden Card Discovery Rate
+
+**Current state:** 1 in 20 cards is "golden" (deterministic based on card ID hash).
+
+**Questions:**
+- Is 5% the right frequency?
+- Should golden cards have special content?
+- Does the celebration feel special enough?
+
+---
+
 ## Technical Debt
 
 ### Performance with Many Cards

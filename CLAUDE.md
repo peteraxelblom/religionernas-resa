@@ -72,11 +72,21 @@ The target audience is children learning religious studies in Swedish schools.
 ### First-Time User Experience
 New users go through a guided onboarding flow:
 1. **Name Input** - Personalized welcome
-2. **Guided First Card** - Tutorial question about Abrahamic religions
-3. **Celebration** - "FANTASTISKT!" with +10 XP and level reveal
-4. **Dashboard** - Ready to explore
+2. **Avatar Selection** - Choose from 6 character avatars
+3. **Guided First Card** - Tutorial question about Abrahamic religions
+4. **Celebration** - "FANTASTISKT!" with avatar, +10 XP, and level reveal
+5. **Dashboard** - Ready to explore
 
-Key files: `FirstTimeFlow.tsx`, `GuidedFirstCard.tsx`, `FirstCardCelebration.tsx`
+Key files: `FirstTimeFlow.tsx`, `AvatarPicker.tsx`, `GuidedFirstCard.tsx`, `FirstCardCelebration.tsx`
+
+### Avatar System
+Players select an avatar during onboarding:
+- 6 avatars: Explorer, Scholar, Sage, Seeker, Guide, Mystic
+- Avatar appears on the journey map at current level position
+- Shown in PlayerLevelCard with level badge overlay
+- Celebratory animations during milestones
+
+Key files: `PlayerAvatar.tsx`, `AvatarPicker.tsx`, `data/avatars.ts`, `stores/gameStore.ts` (avatarId)
 
 ### Daily Reward System
 Returning users can claim daily rewards:
@@ -86,11 +96,30 @@ Returning users can claim daily rewards:
 
 Key files: `DailyRewardModal.tsx`, `stores/gameStore.ts` (dailyReward state)
 
+### Collection System
+Players collect and track their progress:
+- **Card Collection** - All cards shown with mastered/unmastered status
+- **Artifacts** - Unlock decorative items at milestones (5, 10, 15, 25, 40, 60, 80, 100 cards mastered)
+- **Achievements** - Track progress, skill, streak, and special achievements
+- **Filters** - Filter by religion, show only mastered
+
+Key files: `app/(game)/collection/page.tsx`, `CollectionCard.tsx`, `ArtifactDisplay.tsx`, `data/artifacts.ts`
+
+### Journey Map
+Visual representation of the 39-level journey:
+- **JourneyPath** - SVG paths connecting levels within each religion
+- **Player Avatar** - Shows current position on map with glow effect
+- **Religion Sections** - Judaism (blue), Christianity (gold), Islam (green)
+- **Boss Markers** - Larger nodes for boss battles
+
+Key files: `JourneyPath.tsx`, `app/(game)/map/page.tsx`
+
 ### Visual Juice
 - **ParticleBackground** - Floating particles on home screen
 - **Shimmer effects** - On XP progress bars
 - **Pulse glow** - On level badges
 - **Haptic feedback** - On interactions (mobile)
+- **Avatar glow** - Animated glow on player avatar
 
 ### Audio
 All sounds synthesized with Web Audio API in `lib/audio.ts`:
