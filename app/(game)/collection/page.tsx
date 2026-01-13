@@ -15,7 +15,7 @@ type TabType = 'cards' | 'artifacts' | 'achievements';
 type FilterType = 'all' | Religion;
 
 export default function CollectionPage() {
-  const { cardProgress, unlockedAchievements } = useGameStore();
+  const { cardProgress, achievements: unlockedAchievements } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('cards');
   const [filter, setFilter] = useState<FilterType>('all');
