@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import NameInputModal from './NameInputModal';
 import GuidedFirstCard from './GuidedFirstCard';
 import FirstCardCelebration from './FirstCardCelebration';
@@ -39,46 +38,25 @@ export default function FirstTimeFlow({ onComplete }: FirstTimeFlowProps) {
   // Use onboardingStep from store, with 'naming' as fallback
   const step = onboardingStep || 'naming';
 
+  // No wrapper animations - each component handles its own entry/exit
+  // This prevents double animations and position jumping
   return (
-    <AnimatePresence mode="wait">
+    <>
       {step === 'naming' && (
-        <motion.div
-          key="naming"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.3 }}
-        >
-          <NameInputModal onSubmit={handleNameSubmit} />
-        </motion.div>
+        <NameInputModal onSubmit={handleNameSubmit} />
       )}
 
       {step === 'firstCard' && (
-        <motion.div
-          key="firstCard"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.4, type: 'spring', damping: 20 }}
-        >
-          <GuidedFirstCard onComplete={handleCardComplete} />
-        </motion.div>
+        <GuidedFirstCard onComplete={handleCardComplete} />
       )}
 
       {step === 'celebration' && (
-        <motion.div
-          key="celebration"
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, type: 'spring', damping: 15 }}
-        >
-          <FirstCardCelebration
-            xpEarned={earnedXP}
-            wasCorrect={wasCorrect}
-            onContinue={handleCelebrationComplete}
-          />
-        </motion.div>
+        <FirstCardCelebration
+          xpEarned={earnedXP}
+          wasCorrect={wasCorrect}
+          onContinue={handleCelebrationComplete}
+        />
       )}
-    </AnimatePresence>
+    </>
   );
 }

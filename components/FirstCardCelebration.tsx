@@ -34,7 +34,8 @@ interface FirstCardCelebrationProps {
 }
 
 export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue }: FirstCardCelebrationProps) {
-  const [showConfetti, setShowConfetti] = useState(true);
+  // Only show confetti for correct answers - wrong answers are learning moments, not celebrations
+  const [showConfetti, setShowConfetti] = useState(wasCorrect);
   const [xpAnimated, setXpAnimated] = useState(0);
 
   const playerName = useGameStore((state) => state.playerName);
@@ -52,11 +53,13 @@ export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue 
   );
 
   useEffect(() => {
-    // Play celebration sound and haptic
-    if (settings.soundEnabled) {
+    // Only play celebration sound for correct answers
+    if (wasCorrect && settings.soundEnabled) {
       playAchievementSound();
     }
-    hapticCelebration();
+    if (wasCorrect) {
+      hapticCelebration();
+    }
 
     // Animate XP counter
     const duration = 1000;
@@ -80,7 +83,7 @@ export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue 
       clearInterval(interval);
       clearTimeout(confettiTimer);
     };
-  }, [xpEarned, settings.soundEnabled]);
+  }, [xpEarned, settings.soundEnabled, wasCorrect]);
 
   return (
     <AnimatePresence>
@@ -111,50 +114,72 @@ export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue 
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
           className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden"
         >
-          {/* Header */}
-          <div className="bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-8 text-center relative overflow-hidden">
+          {/* Header - different styling for correct vs wrong */}
+          <div className={`p-8 text-center relative overflow-hidden ${
+            wasCorrect
+              ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400'
+              : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600'
+          }`}>
             {/* Decorative circles */}
             <div className="absolute top-0 left-0 w-20 h-20 bg-white/10 rounded-full -ml-10 -mt-10" />
             <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mb-12" />
             <div className="absolute top-1/2 left-1/4 w-8 h-8 bg-white/20 rounded-full" />
             <div className="absolute top-1/3 right-1/4 w-6 h-6 bg-white/20 rounded-full" />
 
-            {/* Celebration text */}
+            {/* Header text */}
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
               <span className="text-6xl block mb-2">
-                {wasCorrect ? '🎉' : '💪'}
+                {wasCorrect ? '🎉' : '💡'}
               </span>
               <h1 className="text-3xl font-black text-white mb-1">
-                {wasCorrect ? 'FANTASTISKT!' : 'BRA JOBBAT!'}
+                {wasCorrect ? 'FANTASTISKT!' : 'NU VET DU!'}
               </h1>
               <p className="text-white/90">
-                Välkommen, {playerName}!
+                {wasCorrect
+                  ? `Välkommen, ${playerName}!`
+                  : 'Det är så man lär sig!'
+                }
               </p>
             </motion.div>
           </div>
 
           {/* Content */}
           <div className="p-6 space-y-5">
+            {/* For wrong answers: Show the correct answer they learned */}
+            {!wasCorrect && (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border-2 border-green-200"
+              >
+                <p className="text-xs text-green-600 font-medium mb-1">Rätt svar:</p>
+                <p className="text-green-800 font-bold">
+                  Judendom, kristendom och islam
+                </p>
+              </motion.div>
+            )}
+
             {/* XP earned */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300, delay: 0.4 }}
+              transition={{ type: 'spring', stiffness: 300, delay: wasCorrect ? 0.4 : 0.5 }}
               className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-5 border-2 border-amber-200 text-center"
             >
               <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
+                animate={wasCorrect ? { scale: [1, 1.1, 1] } : {}}
                 transition={{ duration: 0.5, delay: 0.6 }}
                 className="text-4xl font-black text-amber-600 mb-1"
               >
                 +{xpAnimated} XP
               </motion.div>
               <p className="text-amber-700 text-sm font-medium">
-                Din första poäng!
+                {wasCorrect ? 'Din första poäng!' : 'Lärandebonus!'}
               </p>
             </motion.div>
 
@@ -228,13 +253,17 @@ export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue 
               onClick={onContinue}
               className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden"
             >
-              {/* Pulse effect */}
-              <motion.div
-                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute inset-0 bg-white rounded-xl"
-              />
-              <span className="relative z-10">Fortsätt spela! 🚀</span>
+              {/* Pulse effect - only for correct answers */}
+              {wasCorrect && (
+                <motion.div
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 bg-white rounded-xl"
+                />
+              )}
+              <span className="relative z-10">
+                {wasCorrect ? 'Fortsätt spela! 🚀' : 'Börja utforska! 🌟'}
+              </span>
             </motion.button>
           </div>
         </motion.div>
