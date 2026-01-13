@@ -173,24 +173,24 @@ export default function SwipeTrueFalse({
         </motion.div>
       </div>
 
-      {/* Fallback buttons for accessibility / desktop */}
-      <div className="flex gap-4 mt-6 justify-center">
-        {['Sant', 'Falskt'].map((option) => (
+      {/* Fallback buttons - subtle, positioned to match swipe directions (left=Falskt, right=Sant) */}
+      <div className="flex gap-4 mt-4 justify-center opacity-40 hover:opacity-100 transition-opacity">
+        {['Falskt', 'Sant'].map((option) => (
           <motion.button
             key={option}
             onClick={() => !disabled && onAnswer(option as 'Sant' | 'Falskt')}
             disabled={disabled}
             whileHover={{ scale: disabled ? 1 : 1.05 }}
             whileTap={{ scale: disabled ? 1 : 0.95 }}
-            className={`px-6 py-3 text-sm font-medium rounded-xl border-2 transition-all ${
+            className={`px-4 py-2 text-xs font-medium rounded-lg border transition-all ${
               disabled
                 ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                 : option === 'Sant'
-                ? 'border-green-300 bg-green-50 hover:bg-green-100 text-green-700'
-                : 'border-red-300 bg-red-50 hover:bg-red-100 text-red-700'
+                ? 'border-green-200 bg-green-50 hover:bg-green-100 text-green-600'
+                : 'border-red-200 bg-red-50 hover:bg-red-100 text-red-600'
             }`}
           >
-            {option === 'Sant' ? '👍' : '👎'} {option}
+            {option}
           </motion.button>
         ))}
       </div>

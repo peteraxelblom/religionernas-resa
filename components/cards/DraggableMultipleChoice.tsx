@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
+import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { DRAG_SNAP_DISTANCE, calculateRotation } from '@/lib/gestures';
 
 interface DraggableMultipleChoiceProps {
@@ -216,28 +216,24 @@ export default function DraggableMultipleChoice({
         </motion.div>
       </div>
 
-      {/* Connection line when dragging */}
-      <AnimatePresence>
-        {isDragging && hoveredTarget !== null && (
-          <motion.svg
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 pointer-events-none z-40"
-            style={{ width: '100%', height: '100%' }}
-          >
-            <motion.line
-              x1={dragPosition.x}
-              y1={dragPosition.y}
-              x2={targetPositions[hoveredTarget]?.x || 0}
-              y2={targetPositions[hoveredTarget]?.y || 0}
-              stroke="rgb(147, 51, 234)"
-              strokeWidth={3}
-              strokeDasharray="8,4"
-            />
-          </motion.svg>
-        )}
-      </AnimatePresence>
+      {/* Magnetic snap indicator - highlight on target instead of drawing lines */}
+      {isDragging && hoveredTarget !== null && (
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="fixed inset-0 pointer-events-none z-30"
+        >
+          <motion.div
+            className="absolute w-4 h-4 bg-purple-500 rounded-full"
+            style={{
+              left: targetPositions[hoveredTarget]?.x - 8,
+              top: targetPositions[hoveredTarget]?.y - 8,
+            }}
+            animate={{ scale: [1, 1.5, 1] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          />
+        </motion.div>
+      )}
     </div>
   );
 }

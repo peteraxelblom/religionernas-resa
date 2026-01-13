@@ -466,6 +466,7 @@ export default function LevelPage() {
           /* Game play */
           currentCard && (
             <FlashCard
+              key={currentCard.id}
               card={currentCard}
               bucket={getCardBucket(currentCard.id)}
               correctStreak={getCardProgress(currentCard.id).correctStreak}
