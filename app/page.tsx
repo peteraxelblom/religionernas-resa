@@ -224,23 +224,32 @@ export default function Home() {
           </Link>
 
           {/* Secondary actions */}
-          <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="grid grid-cols-3 gap-3 mt-3">
             <Link href="/daily">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold rounded-xl text-sm shadow hover:shadow-lg transition-shadow"
+                className="w-full py-2.5 px-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold rounded-xl text-sm shadow hover:shadow-lg transition-shadow"
               >
-                🎯 Dagliga utmaningar
+                🎯 Utmaningar
+              </motion.button>
+            </Link>
+            <Link href="/collection">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl text-sm shadow hover:shadow-lg transition-shadow"
+              >
+                📚 Samling
               </motion.button>
             </Link>
             <Link href="/stats">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl text-sm shadow hover:shadow-lg transition-shadow"
+                className="w-full py-2.5 px-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl text-sm shadow hover:shadow-lg transition-shadow"
               >
-                🧘 Lägeskoll
+                📊 Statistik
               </motion.button>
             </Link>
           </div>
