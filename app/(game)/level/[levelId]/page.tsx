@@ -121,20 +121,20 @@ export default function LevelPage() {
     return 1;                       // Passed but multiple mistakes
   }, []);
 
-  const finishLevel = useCallback(() => {
+  const finishLevel = useCallback((finalCorrectCount: number, finalScore: number) => {
     if (!level) return;
 
     // Calculate stars based on mistakes (works with any card count)
-    const stars = calculateStars(correctCount, cards.length, level.passingScore);
+    const stars = calculateStars(finalCorrectCount, cards.length, level.passingScore);
 
     // Complete the level in the store (pass correctCount for perfect level bonus)
-    completeLevel(levelId, stars, score, correctCount, cards.length);
+    completeLevel(levelId, stars, finalScore, finalCorrectCount, cards.length);
 
     // Show celebration and play sound
     playLevelCompleteSound();
     setShowConfetti(true);
     setLevelComplete(true);
-  }, [level, correctCount, cards.length, score, levelId, completeLevel, calculateStars]);
+  }, [level, cards.length, levelId, completeLevel, calculateStars]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard) return;
@@ -158,9 +158,13 @@ export default function LevelPage() {
     const newStreak = correct ? streak + 1 : 0;
     const { points } = calculateAdaptivePoints(correct, responseTimeMs, newStreak, settings);
 
+    // Calculate new values BEFORE state updates (to avoid stale closure issues)
+    const newCorrectCount = correct ? correctCount + 1 : correctCount;
+    const newScore = score + points;
+
     if (correct) {
       setStreak(newStreak);
-      setCorrectCount(c => c + 1);
+      setCorrectCount(newCorrectCount);
 
       // Show streak celebration
       if (newStreak >= 3) {
@@ -172,7 +176,7 @@ export default function LevelPage() {
       setStreak(0);
     }
 
-    setScore(s => s + points);
+    setScore(newScore);
 
     // Show encouragement message if needed (Phase 3)
     const encouragement = getEncouragementMessage(newFlowState, metrics);
@@ -186,10 +190,11 @@ export default function LevelPage() {
       if (currentCardIndex < cards.length - 1) {
         setCurrentCardIndex(i => i + 1);
       } else {
-        finishLevel();
+        // Pass final values to avoid stale closure
+        finishLevel(newCorrectCount, newScore);
       }
     }, 1800);
-  }, [currentCard, currentCardIndex, cards.length, streak, recordCardAnswer, recentAnswers, finishLevel]);
+  }, [currentCard, currentCardIndex, cards.length, streak, correctCount, score, recordCardAnswer, recentAnswers, finishLevel]);
 
   if (!mounted) {
     return (
