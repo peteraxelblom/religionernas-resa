@@ -21,6 +21,9 @@ interface GameState extends SavedGameData {
   sessionStartTime: number | null;
   newlyUnlockedAchievement: string | null; // For toast notification
 
+  // Avatar selection (persisted)
+  avatarId: string;
+
   // Daily challenge tracking (persisted)
   dailyChallengeCompletions: Record<string, string>; // challengeId -> date completed
 
@@ -42,6 +45,7 @@ interface GameState extends SavedGameData {
   // Actions
   initGame: (playerName?: string) => void;
   setPlayerName: (name: string) => void;
+  setAvatar: (avatarId: string) => void;
 
   // Level progress
   completeLevel: (levelId: string, stars: number, score: number, correctCount?: number, totalQuestions?: number) => void;
@@ -137,6 +141,9 @@ export const useGameStore = create<GameState>()(
       newlyUnlockedAchievement: null,
       dailyChallengeCompletions: {},
 
+      // Avatar selection
+      avatarId: 'explorer',
+
       // Streak Shield state
       shieldUsedToday: false,
       shieldLastUsedDate: null,
@@ -167,6 +174,7 @@ export const useGameStore = create<GameState>()(
       },
 
       setPlayerName: (name) => set({ playerName: name }),
+      setAvatar: (avatarId) => set({ avatarId }),
 
       // Level progress
       completeLevel: (levelId, stars, score, correctCount, totalQuestions) => {
