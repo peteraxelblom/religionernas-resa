@@ -430,6 +430,22 @@ export default function LevelPage() {
               </div>
             </div>
 
+            {/* Mastery tip */}
+            {stars >= 1 && stars < 3 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mb-6 p-3 bg-purple-50 rounded-xl border border-purple-200"
+              >
+                <p className="text-sm text-purple-700 text-center">
+                  💡 <span className="font-medium">Tips:</span> Använd Repetitionsläget för att behärska kort.
+                  <br />
+                  <span className="text-xs text-purple-500">4 rätt i rad på samma kort = behärskat!</span>
+                </p>
+              </motion.div>
+            )}
+
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/map">
