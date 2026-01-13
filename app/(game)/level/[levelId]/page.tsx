@@ -10,7 +10,9 @@ import { getCardsByLevel, getCardsByReligion, allCards } from '@/data/cards';
 import FlashCard from '@/components/cards/FlashCard';
 import StreakShieldIndicator from '@/components/StreakShieldIndicator';
 import { Card } from '@/types/card';
-import { playStreakSound, playLevelCompleteSound } from '@/lib/audio';
+import { playStreakSound, playLevelCompleteSound, playStreakBreakSound, playCloseCallSound } from '@/lib/audio';
+import StreakDanger, { StreakBreakAnimation, CloseCallCelebration } from '@/components/StreakDanger';
+import { TimesUpOverlay } from '@/components/TimerRing';
 import {
   calculatePerformanceMetrics,
   determineFlowState,
@@ -50,6 +52,13 @@ export default function LevelPage() {
   const [recentAnswers, setRecentAnswers] = useState<{ correct: boolean; responseTimeMs: number }[]>([]);
   const [flowState, setFlowState] = useState<FlowState>('flow');
   const [encouragementMessage, setEncouragementMessage] = useState<string | null>(null);
+
+  // Tension mechanics state (Alternative B)
+  const [showTimesUp, setShowTimesUp] = useState(false);
+  const [showStreakBreak, setShowStreakBreak] = useState(false);
+  const [lostStreakValue, setLostStreakValue] = useState(0);
+  const [showCloseCall, setShowCloseCall] = useState<'time' | 'streak' | 'lastLife' | null>(null);
+  const [wasCloseToTimeLimit, setWasCloseToTimeLimit] = useState(false);
 
   // Pre-computed confetti properties for stable rendering
   const [confettiProps] = useState(() =>
@@ -131,6 +140,12 @@ export default function LevelPage() {
     setLevelComplete(true);
   }, [level, correctCount, cards.length, score, levelId, completeLevel]);
 
+  // Handle time-up event from FlashCard (Alternative B: Tension mechanics)
+  const handleTimeUp = useCallback(() => {
+    setShowTimesUp(true);
+    setWasCloseToTimeLimit(true);
+  }, []);
+
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard) return;
 
@@ -157,6 +172,20 @@ export default function LevelPage() {
       setStreak(newStreak);
       setCorrectCount(c => c + 1);
 
+      // Check for close-call celebrations (Alternative B: Tension mechanics)
+      // Close to time limit (answered in last 2 seconds of a 15s timer)
+      if (wasCloseToTimeLimit || (level?.timerEnabled && responseTimeMs > (level.timePerQuestionMs || 15000) - 2000)) {
+        playCloseCallSound();
+        setShowCloseCall('time');
+        setTimeout(() => setShowCloseCall(null), 2000);
+      }
+      // Saved a streak that was at risk (5+ streak)
+      else if (streak >= 5) {
+        playCloseCallSound();
+        setShowCloseCall('streak');
+        setTimeout(() => setShowCloseCall(null), 2000);
+      }
+
       // Show streak celebration
       if (newStreak >= 3) {
         setShowStreak(newStreak);
@@ -164,8 +193,17 @@ export default function LevelPage() {
         setTimeout(() => setShowStreak(null), 1500);
       }
     } else {
+      // Streak break animation (Alternative B: Tension mechanics)
+      if (streak >= 3) {
+        playStreakBreakSound();
+        setLostStreakValue(streak);
+        setShowStreakBreak(true);
+      }
       setStreak(0);
     }
+
+    // Reset close-to-time-limit flag
+    setWasCloseToTimeLimit(false);
 
     setScore(s => s + points);
 
@@ -184,7 +222,7 @@ export default function LevelPage() {
         finishLevel();
       }
     }, 1800);
-  }, [currentCard, currentCardIndex, cards.length, streak, recordCardAnswer, recentAnswers, finishLevel]);
+  }, [currentCard, currentCardIndex, cards.length, streak, recordCardAnswer, recentAnswers, finishLevel, level, wasCloseToTimeLimit]);
 
   if (!mounted) {
     return (
@@ -324,6 +362,24 @@ export default function LevelPage() {
         )}
       </AnimatePresence>
 
+      {/* Tension mechanics overlays (Alternative B) */}
+      <TimesUpOverlay
+        isVisible={showTimesUp}
+        onDismiss={() => setShowTimesUp(false)}
+      />
+
+      <StreakBreakAnimation
+        lostStreak={lostStreakValue}
+        isVisible={showStreakBreak}
+        onComplete={() => setShowStreakBreak(false)}
+      />
+
+      <CloseCallCelebration
+        type={showCloseCall || 'time'}
+        isVisible={showCloseCall !== null}
+        onComplete={() => setShowCloseCall(null)}
+      />
+
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -349,9 +405,13 @@ export default function LevelPage() {
 
         {/* Progress bar */}
         <div className="mb-6">
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
+          <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
             <span>Kort {currentCardIndex + 1} av {cards.length}</span>
-            <StreakShieldIndicator streak={streak} isShieldAvailable={isShieldAvailable()} />
+            <div className="flex items-center gap-2">
+              {/* Streak danger indicator (Alternative B: Tension mechanics) */}
+              <StreakDanger streak={streak} isVisible={streak >= 5 && !levelComplete} />
+              <StreakShieldIndicator streak={streak} isShieldAvailable={isShieldAvailable()} />
+            </div>
           </div>
           <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
             <motion.div
@@ -480,6 +540,11 @@ export default function LevelPage() {
               hasSpeedBonusReward={hasReward('speedBonus')}
               isShieldAvailable={isShieldAvailable()}
               playerName={playerName}
+              // Timer configuration (Alternative B: Tension mechanics)
+              // Enable timer by default for all levels in this branch to demonstrate the feature
+              timerEnabled={level?.timerEnabled ?? true}
+              timePerQuestionMs={level?.timePerQuestionMs ?? 15000}
+              onTimeUp={handleTimeUp}
             />
           )
         )}

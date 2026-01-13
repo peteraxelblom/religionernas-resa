@@ -21,6 +21,9 @@ export interface Level {
   passingScore: number; // percentage needed for 1 star
   timeBonus?: number; // seconds for time bonus (3 stars)
   masteryRequirement?: MasteryRequirement; // Phase 3: Alternative unlock via mastery
+  // Timer configuration (Alternative B: Tension mechanics)
+  timerEnabled?: boolean; // Whether to show countdown timer per question
+  timePerQuestionMs?: number; // Time per question in milliseconds (default: 15000)
 }
 
 export interface Boss {

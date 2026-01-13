@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardBucket } from '@/types/card';
 import { getBucketLabel } from '@/lib/spacedRepetition';
-import { playCorrectSound, playWrongSound, playMasterySound } from '@/lib/audio';
+import { playCorrectSound, playWrongSound, playMasterySound, playTimerTick, playTimesUpSound } from '@/lib/audio';
+import TimerRing from '@/components/TimerRing';
 import { hapticLight, hapticError, hapticCelebration, hapticStreak } from '@/lib/haptics';
 import { isCorrect as checkAnswerMatch, GradingRule } from '@/lib/answerMatching';
 import { getFeedbackMessage, getBucketTransitionMessage, FeedbackContext } from '@/lib/feedbackMessages';
@@ -22,6 +23,10 @@ interface FlashCardProps {
   hasSpeedBonusReward?: boolean; // Player has Level 20+ reward for speed bonus
   isShieldAvailable?: boolean; // Streak shield available for use
   playerName?: string; // Player's name for personalized feedback
+  // Timer configuration (Alternative B: Tension mechanics)
+  timerEnabled?: boolean; // Whether to show countdown timer
+  timePerQuestionMs?: number; // Time limit per question in milliseconds
+  onTimeUp?: () => void; // Called when timer expires (before auto-wrong answer)
 }
 
 export default function FlashCard({
@@ -35,6 +40,9 @@ export default function FlashCard({
   hasSpeedBonusReward = false,
   isShieldAvailable = false,
   playerName,
+  timerEnabled = false,
+  timePerQuestionMs = 15000,
+  onTimeUp,
 }: FlashCardProps) {
   const [, setIsFlipped] = useState(false); // isFlipped tracked for state management
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -48,6 +56,41 @@ export default function FlashCard({
     isMastery?: boolean;
     bucketTransition?: string;
   } | null>(null);
+  const [lastTickTime, setLastTickTime] = useState<number>(0);
+
+  // Timer tick handler for tension audio
+  const handleTimerTick = (remainingMs: number) => {
+    if (isCorrect !== null) return; // Already answered
+
+    const now = Date.now();
+    const tickInterval = remainingMs < 3000 ? 500 : remainingMs < 5000 ? 750 : 1000;
+
+    if (now - lastTickTime >= tickInterval) {
+      if (remainingMs < 3000) {
+        playTimerTick('high');
+      } else if (remainingMs < 5000) {
+        playTimerTick('medium');
+      } else if (remainingMs < 8000) {
+        playTimerTick('low');
+      }
+      setLastTickTime(now);
+    }
+  };
+
+  // Handle time up - treat as wrong answer
+  const handleTimeUp = () => {
+    if (isCorrect !== null) return; // Already answered
+
+    playTimesUpSound();
+
+    // Notify parent if callback provided
+    if (onTimeUp) {
+      onTimeUp();
+    }
+
+    // Auto-submit wrong answer
+    handleAnswer('__TIME_UP__');
+  };
 
   // Shuffle multiple choice options to prevent learning positions instead of content
   // Uses card.id as seed for consistent shuffle per card during session
@@ -70,6 +113,7 @@ export default function FlashCard({
     setUserInput('');
     setIsCorrect(null);
     setFeedbackMessage(null);
+    setLastTickTime(0);
     startTimeRef.current = Date.now();
   }, [card.id]);
 
@@ -345,6 +389,17 @@ export default function FlashCard({
           <span className="text-sm text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
             💡 Tips: {card.hint}
           </span>
+        )}
+        {/* Timer ring (Alternative B: Tension mechanics) */}
+        {timerEnabled && isCorrect === null && (
+          <TimerRing
+            durationMs={timePerQuestionMs}
+            isActive={isCorrect === null}
+            onTimeUp={handleTimeUp}
+            onTick={handleTimerTick}
+            size="md"
+            showTimeText={true}
+          />
         )}
       </div>
 

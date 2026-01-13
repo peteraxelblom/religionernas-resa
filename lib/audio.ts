@@ -376,6 +376,168 @@ export function playWhoosh() {
   }
 }
 
+// Timer tick sound - urgent ticking
+export function playTimerTick(urgency: 'low' | 'medium' | 'high' = 'low') {
+  try {
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Higher frequency = more urgent
+    const freqMap = { low: 800, medium: 1000, high: 1200 };
+    const volumeMap = { low: 0.1, medium: 0.15, high: 0.2 };
+
+    oscillator.frequency.setValueAtTime(freqMap[urgency], ctx.currentTime);
+    gainNode.gain.setValueAtTime(volumeMap[urgency], ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+
+    oscillator.type = 'sine';
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.05);
+  } catch {
+    // Silently fail
+  }
+}
+
+// Time's up alarm
+export function playTimesUpSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // Alarm-like descending tones
+    const notes = [880, 660, 880, 660, 440];
+
+    notes.forEach((freq, i) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15);
+      gainNode.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.15);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.15 + 0.12);
+
+      oscillator.type = 'square';
+      oscillator.start(ctx.currentTime + i * 0.15);
+      oscillator.stop(ctx.currentTime + i * 0.15 + 0.12);
+    });
+  } catch {
+    // Silently fail
+  }
+}
+
+// Streak break sound - glass shatter effect
+export function playStreakBreakSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // Multiple short bursts to simulate shatter
+    for (let i = 0; i < 5; i++) {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      // High frequency noise-like
+      oscillator.frequency.setValueAtTime(2000 + Math.random() * 2000, ctx.currentTime + i * 0.03);
+
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(1000, ctx.currentTime + i * 0.03);
+
+      gainNode.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.03);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.03 + 0.08);
+
+      oscillator.type = 'sawtooth';
+      oscillator.start(ctx.currentTime + i * 0.03);
+      oscillator.stop(ctx.currentTime + i * 0.03 + 0.08);
+    }
+
+    // Add a low thud
+    const thud = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    thud.connect(thudGain);
+    thudGain.connect(ctx.destination);
+    thud.frequency.setValueAtTime(80, ctx.currentTime);
+    thudGain.gain.setValueAtTime(0.3, ctx.currentTime);
+    thudGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    thud.type = 'sine';
+    thud.start(ctx.currentTime);
+    thud.stop(ctx.currentTime + 0.2);
+  } catch {
+    // Silently fail
+  }
+}
+
+// Close call relief sound
+export function playCloseCallSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // Quick relief sigh - ascending then resolving
+    const notes = [392, 523.25, 659.25, 783.99];
+
+    notes.forEach((freq, i) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.08);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.08 + 0.15);
+
+      oscillator.type = 'sine';
+      oscillator.start(ctx.currentTime + i * 0.08);
+      oscillator.stop(ctx.currentTime + i * 0.08 + 0.15);
+    });
+  } catch {
+    // Silently fail
+  }
+}
+
+// Drumroll for dramatic moments
+export function playDrumroll(durationMs: number = 1000) {
+  try {
+    const ctx = getAudioContext();
+    const duration = durationMs / 1000;
+    const numHits = Math.floor(duration * 20); // 20 hits per second
+
+    for (let i = 0; i < numHits; i++) {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      const time = ctx.currentTime + (i / numHits) * duration;
+      const intensity = (i / numHits); // Builds up
+
+      oscillator.frequency.setValueAtTime(100 + Math.random() * 50, time);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(200 + intensity * 300, time);
+
+      gainNode.gain.setValueAtTime(0.05 + intensity * 0.1, time);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.03);
+
+      oscillator.type = 'triangle';
+      oscillator.start(time);
+      oscillator.stop(time + 0.03);
+    }
+  } catch {
+    // Silently fail
+  }
+}
+
 // Mastery celebration - "Grokking" sound (Theory of Fun)
 // A special triumphant sound when a card reaches mastered status
 export function playMasterySound() {
