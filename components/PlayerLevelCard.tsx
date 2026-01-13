@@ -3,13 +3,14 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { getNextReward, getUnlockedRewards } from '@/lib/playerLevel';
+import PlayerAvatar from './PlayerAvatar';
 
 interface PlayerLevelCardProps {
   compact?: boolean;
 }
 
 export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProps) {
-  const { getPlayerLevel, playerName } = useGameStore();
+  const { getPlayerLevel, playerName, avatarId } = useGameStore();
   const playerLevel = getPlayerLevel();
   const nextReward = getNextReward(playerLevel.level);
   const unlockedRewards = getUnlockedRewards(playerLevel.level);
@@ -26,8 +27,12 @@ export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProp
   if (compact) {
     return (
       <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-xl px-4 py-2 shadow-sm">
-        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getLevelGradient()} flex items-center justify-center text-white font-bold shadow-md`}>
-          {playerLevel.level}
+        {/* Avatar with level badge */}
+        <div className="relative">
+          <PlayerAvatar avatarId={avatarId} size="sm" />
+          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br ${getLevelGradient()} flex items-center justify-center text-white text-xs font-bold shadow-md ring-2 ring-white`}>
+            {playerLevel.level}
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-800 truncate">{playerLevel.title}</p>
@@ -55,25 +60,25 @@ export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProp
         <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
         <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full -ml-4 -mb-4" />
 
-        {/* Level badge with pulse glow */}
+        {/* Avatar with level badge */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
           className="relative mx-auto"
         >
-          {/* Pulsing glow effect behind badge */}
+          {/* Pulsing glow effect behind avatar */}
           <motion.div
-            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.1, 0.3] }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.1, 0.4] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             className="absolute inset-0 w-24 h-24 rounded-full bg-white mx-auto"
           />
           <div className="relative w-24 h-24 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mx-auto mb-3 ring-4 ring-white/30">
-            <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-lg">
-              <span className="text-4xl font-bold bg-gradient-to-br from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                {playerLevel.level}
-              </span>
-            </div>
+            <PlayerAvatar avatarId={avatarId} size="lg" showGlow={true} />
+          </div>
+          {/* Level badge overlay */}
+          <div className={`absolute -bottom-1 right-1/2 translate-x-6 w-10 h-10 rounded-full bg-gradient-to-br ${getLevelGradient()} flex items-center justify-center text-white font-bold shadow-lg ring-3 ring-white`}>
+            {playerLevel.level}
           </div>
         </motion.div>
 

@@ -21,6 +21,9 @@ interface GameState extends SavedGameData {
   sessionStartTime: number | null;
   newlyUnlockedAchievement: string | null; // For toast notification
 
+  // Avatar selection (persisted)
+  avatarId: string;
+
   // Daily challenge tracking (persisted)
   dailyChallengeCompletions: Record<string, string>; // challengeId -> date completed
 
@@ -31,7 +34,7 @@ interface GameState extends SavedGameData {
 
   // Onboarding state (persisted)
   hasCompletedOnboarding: boolean;
-  onboardingStep: 'naming' | 'firstCard' | 'celebration' | null;
+  onboardingStep: 'naming' | 'avatar' | 'firstCard' | 'celebration' | null;
 
   // Daily reward state (persisted)
   dailyReward: {
@@ -42,6 +45,7 @@ interface GameState extends SavedGameData {
   // Actions
   initGame: (playerName?: string) => void;
   setPlayerName: (name: string) => void;
+  setAvatar: (avatarId: string) => void;
 
   // Level progress
   completeLevel: (levelId: string, stars: number, score: number, correctCount?: number, totalQuestions?: number) => void;
@@ -80,8 +84,9 @@ interface GameState extends SavedGameData {
 
   // Onboarding
   completeOnboarding: () => void;
-  setOnboardingStep: (step: 'naming' | 'firstCard' | 'celebration' | null) => void;
-  startOnboarding: (name: string) => void; // Combined action: set name + advance to firstCard
+  setOnboardingStep: (step: 'naming' | 'avatar' | 'firstCard' | 'celebration' | null) => void;
+  startOnboarding: (name: string) => void; // Combined action: set name + advance to avatar picker
+  selectAvatarAndAdvance: (avatarId: string) => void; // Set avatar + advance to firstCard
 
   // Daily Reward
   canClaimDailyReward: () => boolean;
@@ -137,6 +142,9 @@ export const useGameStore = create<GameState>()(
       newlyUnlockedAchievement: null,
       dailyChallengeCompletions: {},
 
+      // Avatar selection
+      avatarId: 'explorer',
+
       // Streak Shield state
       shieldUsedToday: false,
       shieldLastUsedDate: null,
@@ -167,6 +175,7 @@ export const useGameStore = create<GameState>()(
       },
 
       setPlayerName: (name) => set({ playerName: name }),
+      setAvatar: (avatarId) => set({ avatarId }),
 
       // Level progress
       completeLevel: (levelId, stars, score, correctCount, totalQuestions) => {
@@ -459,7 +468,12 @@ export const useGameStore = create<GameState>()(
       startOnboarding: (name) => {
         // Atomic update: set both playerName and onboardingStep in single state change
         // This prevents race conditions with persist middleware
-        set({ playerName: name, onboardingStep: 'firstCard' });
+        set({ playerName: name, onboardingStep: 'avatar' });
+      },
+
+      selectAvatarAndAdvance: (avatarId) => {
+        // Set avatar and advance to first card
+        set({ avatarId, onboardingStep: 'firstCard' });
       },
 
       // Daily Reward

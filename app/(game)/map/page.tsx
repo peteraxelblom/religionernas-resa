@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
 import { levels, isLevelUnlocked, getLevelById } from '@/data/levels';
@@ -9,11 +9,16 @@ import { Level } from '@/types/level';
 import { isLevelUnlockedAdvanced, getMasteryProgress } from '@/lib/unlockSystem';
 import LockedLevelModal from '@/components/LockedLevelModal';
 import { STRINGS } from '@/lib/strings/sv';
+import JourneyPath from '@/components/JourneyPath';
+import PlayerAvatar from '@/components/PlayerAvatar';
+import { AvatarPickerModal } from '@/components/AvatarPicker';
 
 export default function MapPage() {
-  const { levelProgress, isLevelCompleted, cardProgress } = useGameStore();
+  const { levelProgress, isLevelCompleted, cardProgress, avatarId, setAvatar } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [selectedLockedLevel, setSelectedLockedLevel] = useState<Level | null>(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
@@ -100,11 +105,27 @@ export default function MapPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-purple-800">
             Världskartan
           </h1>
-          <div className="w-20"></div>
+          {/* Avatar button */}
+          <button
+            onClick={() => setShowAvatarPicker(true)}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            title="Välj avatar"
+          >
+            <PlayerAvatar avatarId={avatarId} size="sm" />
+          </button>
         </div>
 
-        {/* Level Grid */}
-        <div className="space-y-4">
+        {/* Level Grid with Journey Path */}
+        <div className="relative space-y-4" ref={mapContainerRef}>
+          {/* Journey path visualization */}
+          <JourneyPath
+            levels={levels}
+            completedLevelIds={completedLevelIds}
+            currentLevelId={nextLevel?.id}
+            containerRef={mapContainerRef}
+            avatarId={avatarId}
+          />
+
           {/* Group levels by religion */}
           {['shared', 'judaism', 'christianity', 'islam'].map((religion) => {
             const religionLevels = levels.filter(l =>
@@ -138,6 +159,7 @@ export default function MapPage() {
                     return (
                       <motion.div
                         key={level.id}
+                        data-level-id={level.id}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.05 }}
@@ -296,6 +318,16 @@ export default function MapPage() {
             onClose={() => setSelectedLockedLevel(null)}
           />
         )}
+
+        {/* Avatar picker modal */}
+        <AnimatePresence>
+          <AvatarPickerModal
+            isOpen={showAvatarPicker}
+            currentAvatarId={avatarId}
+            onSelect={setAvatar}
+            onClose={() => setShowAvatarPicker(false)}
+          />
+        </AnimatePresence>
       </div>
     </main>
   );

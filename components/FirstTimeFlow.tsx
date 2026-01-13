@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import NameInputModal from './NameInputModal';
 import GuidedFirstCard from './GuidedFirstCard';
 import FirstCardCelebration from './FirstCardCelebration';
+import { OnboardingAvatarPicker } from './AvatarPicker';
 import { useGameStore } from '@/stores/gameStore';
 
 interface FirstTimeFlowProps {
@@ -14,12 +15,17 @@ export default function FirstTimeFlow({ onComplete }: FirstTimeFlowProps) {
   const [earnedXP, setEarnedXP] = useState(0);
   const [wasCorrect, setWasCorrect] = useState(false);
 
-  const { startOnboarding, addXP, completeOnboarding, onboardingStep, setOnboardingStep } = useGameStore();
+  const { startOnboarding, selectAvatarAndAdvance, addXP, completeOnboarding, onboardingStep, setOnboardingStep, playerName } = useGameStore();
 
   const handleNameSubmit = useCallback((name: string) => {
     // Use atomic action to set name and advance step in single state update
     startOnboarding(name);
   }, [startOnboarding]);
+
+  const handleAvatarSelect = useCallback((avatarId: string) => {
+    // Use atomic action to set avatar and advance to first card
+    selectAvatarAndAdvance(avatarId);
+  }, [selectAvatarAndAdvance]);
 
   const handleCardComplete = useCallback((correct: boolean) => {
     // Award XP: 10 for correct, 5 for wrong (everyone wins!)
@@ -44,6 +50,13 @@ export default function FirstTimeFlow({ onComplete }: FirstTimeFlowProps) {
     <>
       {step === 'naming' && (
         <NameInputModal onSubmit={handleNameSubmit} />
+      )}
+
+      {step === 'avatar' && (
+        <OnboardingAvatarPicker
+          playerName={playerName}
+          onSelect={handleAvatarSelect}
+        />
       )}
 
       {step === 'firstCard' && (

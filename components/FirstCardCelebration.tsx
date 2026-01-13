@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { playAchievementSound } from '@/lib/audio';
 import { hapticCelebration } from '@/lib/haptics';
+import { CelebrationAvatar } from './PlayerAvatar';
 
 // Confetti particle component
 function ConfettiParticle({ delay, color, randomX, randomRotate }: { delay: number; color: string; randomX: number; randomRotate: number }) {
@@ -41,6 +42,7 @@ export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue 
   const playerName = useGameStore((state) => state.playerName);
   const totalXP = useGameStore((state) => state.stats.totalXP);
   const settings = useGameStore((state) => state.settings);
+  const avatarId = useGameStore((state) => state.avatarId);
 
   const confettiColors = ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444'];
 
@@ -183,15 +185,24 @@ export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue 
               </p>
             </motion.div>
 
-            {/* Level badge */}
+            {/* Avatar with level badge */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.6 }}
               className="flex items-center justify-center gap-4"
             >
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg ring-4 ring-purple-200">
-                <span className="text-2xl font-black text-white">1</span>
+              <div className="relative">
+                <CelebrationAvatar avatarId={avatarId} />
+                {/* Level badge overlay */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 1.2, type: 'spring' }}
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg ring-2 ring-white"
+                >
+                  <span className="text-sm font-black text-white">1</span>
+                </motion.div>
               </div>
               <div className="text-left">
                 <p className="text-sm text-gray-500">Du är nu</p>
