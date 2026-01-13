@@ -195,7 +195,7 @@ export default function Home() {
                       {dueCards} kort att repetera
                     </p>
                     <p className="text-xs text-amber-600">
-                      Repetera för +50 XP bonus!
+                      Svara rätt 4 gånger i rad för att behärska! +50 XP bonus
                     </p>
                   </div>
                 </div>

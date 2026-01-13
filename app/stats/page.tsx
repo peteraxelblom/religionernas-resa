@@ -318,7 +318,7 @@ export default function StatsPage() {
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded" />
-              <span className="text-gray-600">Behärskat (5+ rätt i rad)</span>
+              <span className="text-gray-600">Behärskat (4 rätt i rad)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-yellow-400 rounded" />

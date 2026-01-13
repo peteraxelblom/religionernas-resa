@@ -109,18 +109,23 @@ export default function LevelPage() {
     setMounted(true);
   }, []);
 
+  // Calculate stars based on mistakes (works better with small card counts)
+  const calculateStars = useCallback((correct: number, total: number, passingScore: number): number => {
+    if (total === 0) return 0;
+    const accuracy = (correct / total) * 100;
+    if (accuracy < passingScore) return 0;
+
+    const mistakes = total - correct;
+    if (mistakes === 0) return 3;  // Perfect - no mistakes
+    if (mistakes === 1) return 2;  // One mistake allowed for 2 stars
+    return 1;                       // Passed but multiple mistakes
+  }, []);
+
   const finishLevel = useCallback(() => {
     if (!level) return;
 
-    // Calculate stars based on performance
-    const accuracy = cards.length > 0 ? (correctCount / cards.length) * 100 : 0;
-    let stars = 0;
-
-    if (accuracy >= level.passingScore) {
-      stars = 1;
-      if (accuracy >= 80) stars = 2;
-      if (accuracy >= 95) stars = 3;
-    }
+    // Calculate stars based on mistakes (works with any card count)
+    const stars = calculateStars(correctCount, cards.length, level.passingScore);
 
     // Complete the level in the store (pass correctCount for perfect level bonus)
     completeLevel(levelId, stars, score, correctCount, cards.length);
@@ -129,7 +134,7 @@ export default function LevelPage() {
     playLevelCompleteSound();
     setShowConfetti(true);
     setLevelComplete(true);
-  }, [level, correctCount, cards.length, score, levelId, completeLevel]);
+  }, [level, correctCount, cards.length, score, levelId, completeLevel, calculateStars]);
 
   const handleAnswer = useCallback((correct: boolean, responseTimeMs: number) => {
     if (!currentCard) return;
@@ -235,7 +240,7 @@ export default function LevelPage() {
 
   const nextLevel = getNextLevel(levelId);
   const accuracy = cards.length > 0 ? Math.round((correctCount / cards.length) * 100) : 0;
-  const stars = accuracy >= 95 ? 3 : accuracy >= 80 ? 2 : accuracy >= level.passingScore ? 1 : 0;
+  const stars = calculateStars(correctCount, cards.length, level.passingScore);
 
   return (
     <main className="min-h-screen p-4 md:p-8 relative">
@@ -424,6 +429,22 @@ export default function LevelPage() {
                 <div className="text-xs text-gray-500">{STRINGS.ACCURACY}</div>
               </div>
             </div>
+
+            {/* Mastery tip */}
+            {stars >= 1 && stars < 3 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mb-6 p-3 bg-purple-50 rounded-xl border border-purple-200"
+              >
+                <p className="text-sm text-purple-700 text-center">
+                  💡 <span className="font-medium">Tips:</span> Använd Repetitionsläget för att behärska kort.
+                  <br />
+                  <span className="text-xs text-purple-500">4 rätt i rad på samma kort = behärskat!</span>
+                </p>
+              </motion.div>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
