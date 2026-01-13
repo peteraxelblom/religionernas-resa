@@ -36,21 +36,28 @@ export default function AchievementToast() {
   useEffect(() => {
     if (newlyUnlockedAchievement && newlyUnlockedAchievement !== lastProcessedRef.current) {
       lastProcessedRef.current = newlyUnlockedAchievement;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Responding to external state change
-      setVisible(true);
-      playAchievementSound();
 
-      // Auto-hide after 4 seconds
-      const timer = setTimeout(() => {
+      // Delay showing to let other celebrations (level complete, etc.) finish first
+      const showDelay = setTimeout(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Responding to external state change
+        setVisible(true);
+        playAchievementSound();
+      }, 2000);
+
+      // Auto-hide after showing for 4 seconds
+      const hideDelay = setTimeout(() => {
         setVisible(false);
         // Clear the state after animation completes
         setTimeout(() => {
           clearNewlyUnlockedAchievement();
           lastProcessedRef.current = null;
         }, 300);
-      }, 4000);
+      }, 6000); // 2s delay + 4s visible
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(showDelay);
+        clearTimeout(hideDelay);
+      };
     }
   }, [newlyUnlockedAchievement, clearNewlyUnlockedAchievement]);
 
