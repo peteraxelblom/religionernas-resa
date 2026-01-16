@@ -21,6 +21,7 @@ import {
   FlowState,
 } from '@/lib/adaptiveDifficulty';
 import { STRINGS } from '@/lib/strings/sv';
+import { getThemeForReligion } from '@/lib/religionThemes';
 
 export default function LevelPage() {
   const params = useParams();
@@ -45,6 +46,7 @@ export default function LevelPage() {
   const [showStreak, setShowStreak] = useState<number | null>(null);
   const [levelComplete, setLevelComplete] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [hintUsedThisLevel, setHintUsedThisLevel] = useState(false); // Track bonus hint usage
 
   // Adaptive difficulty state (Phase 3)
   const [recentAnswers, setRecentAnswers] = useState<{ correct: boolean; responseTimeMs: number }[]>([]);
@@ -64,6 +66,9 @@ export default function LevelPage() {
   );
 
   const level = useMemo(() => getLevelById(levelId), [levelId]);
+
+  // Get theme for current level's religion
+  const theme = useMemo(() => level ? getThemeForReligion(level.religion) : null, [level]);
 
   // Stable shuffle seed - changes each time the level is started
   const [shuffleSeed] = useState(() => Math.random());
@@ -248,7 +253,51 @@ export default function LevelPage() {
   const stars = calculateStars(correctCount, cards.length, level.passingScore);
 
   return (
-    <main className="min-h-screen p-4 md:p-8 relative">
+    <main className={`min-h-screen p-4 md:p-8 relative overflow-hidden bg-gradient-to-br ${theme?.bgGradient || 'from-purple-50 to-pink-50'}`}>
+      {/* Themed floating particles */}
+      {theme && !levelComplete && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(12)].map((_, i) => (
+            <motion.div
+              key={`particle-${i}`}
+              initial={{ opacity: 0, y: '110%', x: `${(i / 12) * 100}%` }}
+              animate={{
+                opacity: [0, 0.4, 0],
+                y: ['110%', '-10%'],
+              }}
+              transition={{
+                duration: 8 + (i % 4) * 2,
+                delay: i * 0.6,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+              className={`absolute w-3 h-3 rounded-full ${theme.particleColors[i % theme.particleColors.length]}`}
+            />
+          ))}
+          {/* Religion-specific emoji particles */}
+          {[...Array(4)].map((_, i) => (
+            <motion.div
+              key={`emoji-particle-${i}`}
+              initial={{ opacity: 0, y: '110%', x: `${15 + (i / 4) * 70}%` }}
+              animate={{
+                opacity: [0, 0.7, 0],
+                y: ['110%', '-10%'],
+                rotate: [0, 360],
+              }}
+              transition={{
+                duration: 15 + i * 3,
+                delay: i * 2 + 1,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+              className="absolute text-2xl"
+            >
+              {theme.particleEmojis[i % theme.particleEmojis.length]}
+            </motion.div>
+          ))}
+        </div>
+      )}
+
       {/* Confetti effect */}
       <AnimatePresence>
         {showConfetti && (
@@ -334,10 +383,10 @@ export default function LevelPage() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <Link href="/map" className="text-purple-600 hover:text-purple-800">
+          <Link href="/map" className={`${theme?.textSecondary || 'text-purple-600'} hover:opacity-80 transition-opacity`}>
             <span className="text-2xl">←</span>
             <span className="ml-2">Karta</span>
           </Link>
@@ -352,22 +401,22 @@ export default function LevelPage() {
           </div>
 
           <div className="text-right">
-            <div className="text-2xl font-bold text-purple-700">{score}</div>
+            <div className={`text-2xl font-bold ${theme?.textPrimary || 'text-purple-700'}`}>{score}</div>
             <div className="text-xs text-gray-500">{STRINGS.POINTS}</div>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="mb-6">
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
+          <div className={`flex justify-between text-sm ${theme?.textSecondary || 'text-gray-600'} mb-1`}>
             <span>Kort {currentCardIndex + 1} av {cards.length}</span>
             <StreakShieldIndicator streak={streak} isShieldAvailable={isShieldAvailable()} />
           </div>
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-3 bg-white/50 rounded-full overflow-hidden shadow-inner">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              className={`h-full bg-gradient-to-r ${getReligionColor()} rounded-full`}
+              className={`h-full bg-gradient-to-r ${theme?.progressFrom || 'from-purple-500'} ${theme?.progressTo || 'to-pink-500'} rounded-full`}
               transition={{ duration: 0.3 }}
             />
           </div>
@@ -420,7 +469,7 @@ export default function LevelPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="bg-purple-50 rounded-xl p-4">
                 <div className="text-2xl font-bold text-purple-600">{score}</div>
                 <div className="text-xs text-gray-500">{STRINGS.POINTS}</div>
@@ -435,6 +484,27 @@ export default function LevelPage() {
               </div>
             </div>
 
+            {/* Active bonuses display */}
+            {stars >= 1 && (hasReward('xpBoost10') || (accuracy === 100 && hasReward('perfectLevelBonus'))) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mb-4 flex flex-wrap justify-center gap-2"
+              >
+                {hasReward('xpBoost10') && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700 rounded-full text-sm font-medium border border-amber-200">
+                    ⚡ +10% XP bonus aktiv
+                  </span>
+                )}
+                {accuracy === 100 && hasReward('perfectLevelBonus') && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm font-medium border border-purple-200">
+                    💎 Perfekt! +25 XP
+                  </span>
+                )}
+              </motion.div>
+            )}
+
             {/* Mastery tip */}
             {stars >= 1 && stars < 3 && (
               <motion.div
@@ -446,7 +516,7 @@ export default function LevelPage() {
                 <p className="text-sm text-purple-700 text-center">
                   💡 <span className="font-medium">Tips:</span> Använd Repetitionsläget för att behärska kort.
                   <br />
-                  <span className="text-xs text-purple-500">4 rätt i rad på samma kort = behärskat!</span>
+                  <span className="text-xs text-purple-500">Svara rätt flera gånger i rad för att bemästra!</span>
                 </p>
               </motion.div>
             )}
@@ -506,6 +576,9 @@ export default function LevelPage() {
               hasSpeedBonusReward={hasReward('speedBonus')}
               isShieldAvailable={isShieldAvailable()}
               playerName={playerName}
+              hasBonusHint={hasReward('freeHintPerLevel')}
+              hintUsedThisLevel={hintUsedThisLevel}
+              onUseHint={() => setHintUsedThisLevel(true)}
             />
           )
         )}

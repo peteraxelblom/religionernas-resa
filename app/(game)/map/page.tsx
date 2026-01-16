@@ -1,24 +1,62 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useGameStore } from '@/stores/gameStore';
-import { levels, isLevelUnlocked, getLevelById } from '@/data/levels';
+import { levels, isLevelUnlocked, getLevelById, bosses } from '@/data/levels';
 import { Level } from '@/types/level';
 import { isLevelUnlockedAdvanced, getMasteryProgress } from '@/lib/unlockSystem';
 import LockedLevelModal from '@/components/LockedLevelModal';
+import BossUnlockModal from '@/components/BossUnlockModal';
 import { STRINGS } from '@/lib/strings/sv';
-import JourneyPath from '@/components/JourneyPath';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { AvatarPickerModal } from '@/components/AvatarPicker';
 
 export default function MapPage() {
-  const { levelProgress, isLevelCompleted, cardProgress, avatarId, setAvatar } = useGameStore();
+  const { levelProgress, isLevelCompleted, cardProgress, avatarId, setAvatar, acknowledgeBoss, isBossAcknowledged } = useGameStore();
   const [mounted, setMounted] = useState(false);
   const [selectedLockedLevel, setSelectedLockedLevel] = useState<Level | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  const completedLevelIds = useMemo(() =>
+    Object.keys(levelProgress).filter(id => levelProgress[id]?.completed),
+    [levelProgress]
+  );
+
+  // Calculate newly unlocked boss (memoized to avoid cascading renders)
+  const unacknowledgedBoss = useMemo(() => {
+    if (!mounted) return null;
+
+    // Find boss levels that are now unlocked but not yet acknowledged
+    const bossLevels = levels.filter(l => l.type === 'boss');
+
+    for (const bossLevel of bossLevels) {
+      // Check if boss is unlocked (required level completed)
+      const isUnlocked = bossLevel.requiredLevel
+        ? completedLevelIds.includes(bossLevel.requiredLevel)
+        : true;
+
+      // Check if not already acknowledged
+      if (isUnlocked && !isBossAcknowledged(bossLevel.id)) {
+        // Find the corresponding Boss data
+        const boss = bosses.find(b => b.id === bossLevel.id);
+        if (boss) return boss;
+      }
+    }
+    return null;
+  }, [mounted, completedLevelIds, isBossAcknowledged]);
+
+  // Track whether modal should show (separate from computed value to allow closing)
+  const [dismissedBossId, setDismissedBossId] = useState<string | null>(null);
+  const showBossModal = unacknowledgedBoss !== null && unacknowledgedBoss.id !== dismissedBossId;
+
+  const handleCloseBossModal = () => {
+    if (unacknowledgedBoss) {
+      acknowledgeBoss(unacknowledgedBoss.id);
+      setDismissedBossId(unacknowledgedBoss.id);
+    }
+  };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard Next.js hydration pattern
@@ -32,10 +70,6 @@ export default function MapPage() {
       </div>
     );
   }
-
-  const completedLevelIds = Object.keys(levelProgress).filter(
-    id => levelProgress[id]?.completed
-  );
 
   const getReligionColor = (religion: Level['religion']) => {
     switch (religion) {
@@ -115,17 +149,8 @@ export default function MapPage() {
           </button>
         </div>
 
-        {/* Level Grid with Journey Path */}
-        <div className="relative space-y-4" ref={mapContainerRef}>
-          {/* Journey path visualization */}
-          <JourneyPath
-            levels={levels}
-            completedLevelIds={completedLevelIds}
-            currentLevelId={nextLevel?.id}
-            containerRef={mapContainerRef}
-            avatarId={avatarId}
-          />
-
+        {/* Level Grid */}
+        <div className="space-y-4">
           {/* Group levels by religion */}
           {['shared', 'judaism', 'christianity', 'islam'].map((religion) => {
             const religionLevels = levels.filter(l =>
@@ -328,6 +353,13 @@ export default function MapPage() {
             onClose={() => setShowAvatarPicker(false)}
           />
         </AnimatePresence>
+
+        {/* Boss unlock modal */}
+        <BossUnlockModal
+          boss={unacknowledgedBoss}
+          isOpen={showBossModal}
+          onClose={handleCloseBossModal}
+        />
       </div>
     </main>
   );

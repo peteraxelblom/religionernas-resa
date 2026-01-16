@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
-import { getNextReward, getUnlockedRewards } from '@/lib/playerLevel';
+import { getNextReward, getUnlockedRewards, Reward } from '@/lib/playerLevel';
 import PlayerAvatar from './PlayerAvatar';
+import BonusInfoModal from './BonusInfoModal';
 
 interface PlayerLevelCardProps {
   compact?: boolean;
@@ -11,6 +13,7 @@ interface PlayerLevelCardProps {
 
 export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProps) {
   const { getPlayerLevel, playerName, avatarId } = useGameStore();
+  const [selectedBonus, setSelectedBonus] = useState<Reward | null>(null);
   const playerLevel = getPlayerLevel();
   const nextReward = getNextReward(playerLevel.level);
   const unlockedRewards = getUnlockedRewards(playerLevel.level);
@@ -146,21 +149,31 @@ export default function PlayerLevelCard({ compact = false }: PlayerLevelCardProp
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Upplåsta bonusar</p>
             <div className="flex flex-wrap gap-2">
               {unlockedRewards.map((reward) => (
-                <motion.div
+                <motion.button
                   key={reward.id}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedBonus(reward)}
+                  className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm hover:bg-green-100 transition-colors cursor-pointer"
                   title={reward.description}
                 >
                   <span>{reward.icon}</span>
                   <span className="font-medium">{reward.name}</span>
-                </motion.div>
+                </motion.button>
               ))}
             </div>
+            <p className="text-xs text-gray-400 mt-2">Tryck på en bonus för mer info</p>
           </div>
         )}
       </div>
+
+      {/* Bonus info modal */}
+      <BonusInfoModal
+        reward={selectedBonus}
+        isOpen={selectedBonus !== null}
+        onClose={() => setSelectedBonus(null)}
+      />
     </motion.div>
   );
 }

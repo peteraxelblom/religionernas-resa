@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { playCorrectSound, playWrongSound } from '@/lib/audio';
-import { hapticLight, hapticSuccess, hapticError } from '@/lib/haptics';
 
 // The tutorial card - a simple multiple choice question about the Abrahamic religions
 const TUTORIAL_CARD = {
@@ -37,7 +36,6 @@ export default function GuidedFirstCard({ onComplete }: GuidedFirstCardProps) {
   const handleOptionSelect = (option: string) => {
     if (showResult) return;
 
-    hapticLight();
     setSelectedOption(option);
   };
 
@@ -49,10 +47,8 @@ export default function GuidedFirstCard({ onComplete }: GuidedFirstCardProps) {
 
     if (isCorrect) {
       if (settings.soundEnabled) playCorrectSound();
-      hapticSuccess();
     } else {
       if (settings.soundEnabled) playWrongSound();
-      hapticError();
     }
 
     // Delay before showing celebration - shorter for correct (just see green highlight)

@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardBucket } from '@/types/card';
 import { getBucketLabel } from '@/lib/spacedRepetition';
 import { playCorrectSound, playWrongSound, playMasterySound } from '@/lib/audio';
-import { hapticLight, hapticError, hapticCelebration, hapticStreak } from '@/lib/haptics';
 import { isCorrect as checkAnswerMatch, GradingRule } from '@/lib/answerMatching';
 import { getFeedbackMessage, getBucketTransitionMessage, FeedbackContext } from '@/lib/feedbackMessages';
 import { STRINGS } from '@/lib/strings/sv';
@@ -22,6 +21,9 @@ interface FlashCardProps {
   hasSpeedBonusReward?: boolean; // Player has Level 20+ reward for speed bonus
   isShieldAvailable?: boolean; // Streak shield available for use
   playerName?: string; // Player's name for personalized feedback
+  hasBonusHint?: boolean; // Player has Level 2+ reward for free hint
+  hintUsedThisLevel?: boolean; // Whether hint was already used this level
+  onUseHint?: () => void; // Callback when player uses their bonus hint
 }
 
 export default function FlashCard({
@@ -35,11 +37,15 @@ export default function FlashCard({
   hasSpeedBonusReward = false,
   isShieldAvailable = false,
   playerName,
+  hasBonusHint = false,
+  hintUsedThisLevel = false,
+  onUseHint,
 }: FlashCardProps) {
   const [, setIsFlipped] = useState(false); // isFlipped tracked for state management
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [userInput, setUserInput] = useState('');
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [showManualHint, setShowManualHint] = useState(false); // Manual hint button clicked
   // eslint-disable-next-line react-hooks/purity -- Ref initialization, only runs once
   const startTimeRef = useRef(Date.now());
   const [feedbackMessage, setFeedbackMessage] = useState<{
@@ -59,6 +65,7 @@ export default function FlashCard({
     setUserInput('');
     setIsCorrect(null);
     setFeedbackMessage(null);
+    setShowManualHint(false);
     startTimeRef.current = Date.now();
 
     // Shuffle multiple choice options using Fisher-Yates
@@ -168,22 +175,15 @@ export default function FlashCard({
     setSelectedAnswer(answer);
     setIsFlipped(true);
 
-    // Play sound effect and haptic feedback
+    // Play sound effect
     if (correct) {
       if (feedback.isMastery) {
         playMasterySound();
-        hapticCelebration();
       } else {
         playCorrectSound();
-        hapticLight();
-        // Extra haptic for streak milestones
-        if (newSessionStreak > 0 && newSessionStreak % 5 === 0) {
-          hapticStreak(newSessionStreak);
-        }
       }
     } else {
       playWrongSound();
-      hapticError();
     }
 
     // Slight delay before calling onAnswer to show the result
@@ -198,6 +198,20 @@ export default function FlashCard({
       handleAnswer(userInput);
     }
   };
+
+  // Handle manual hint button click
+  const handleUseHint = () => {
+    setShowManualHint(true);
+    if (onUseHint) {
+      onUseHint();
+    }
+  };
+
+  // Determine if hint should be shown (either forced by adaptive difficulty or manually triggered)
+  const shouldShowHint = forceShowHint || showManualHint || hintUsedThisLevel;
+
+  // Determine if hint button should be shown
+  const canShowHintButton = hasBonusHint && card.hint && isCorrect === null && !hintUsedThisLevel && !showManualHint && !forceShowHint;
 
   // Bucket indicator colors (more visible)
   const bucketStyles = {
@@ -342,10 +356,28 @@ export default function FlashCard({
             </span>
           )}
         </div>
-        {card.hint && isCorrect === null && forceShowHint && (
-          <span className="text-sm text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
-            💡 Tips: {card.hint}
-          </span>
+        {/* Hint button or hint text */}
+        {card.hint && isCorrect === null && (
+          <div className="flex items-center gap-2">
+            {shouldShowHint ? (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-sm text-amber-600 font-medium bg-amber-50 px-3 py-1.5 rounded-lg"
+              >
+                💡 Tips: {card.hint}
+              </motion.span>
+            ) : canShowHintButton ? (
+              <motion.button
+                onClick={handleUseHint}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="text-sm text-amber-600 font-medium bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+              >
+                💡 Visa tips
+              </motion.button>
+            ) : null}
+          </div>
         )}
       </div>
 

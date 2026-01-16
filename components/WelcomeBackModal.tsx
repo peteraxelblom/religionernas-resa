@@ -1,8 +1,6 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { hapticMedium } from '@/lib/haptics';
-import { useEffect } from 'react';
 
 interface WelcomeBackModalProps {
   playerName: string;
@@ -25,10 +23,6 @@ export default function WelcomeBackModal({
   onClose,
   onClaimReward,
 }: WelcomeBackModalProps) {
-  useEffect(() => {
-    hapticMedium();
-  }, []);
-
   function getWelcomeMessage(): string {
     if (daysAway === 1) return 'Kul att se dig igen!';
     if (daysAway <= 3) return 'Välkommen tillbaka!';

@@ -56,6 +56,8 @@ export default function DailyChallengesPage() {
   const [totalTime, setTotalTime] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeUntilReset, setTimeUntilReset] = useState(getTimeUntilReset());
+  const [awardedXP, setAwardedXP] = useState(0);
+  const [xpWasBoosted, setXpWasBoosted] = useState(false);
 
   // Adaptive difficulty state
   const [recentAnswers, setRecentAnswers] = useState<{ correct: boolean; responseTimeMs: number }[]>([]);
@@ -92,6 +94,8 @@ export default function DailyChallengesPage() {
     setTotalTime(0);
     setStartTime(Date.now());
     setRecentAnswers([]);
+    setAwardedXP(0);
+    setXpWasBoosted(false);
     setPhase('playing');
   }, [cardProgress, flowState]);
 
@@ -112,6 +116,9 @@ export default function DailyChallengesPage() {
       // Apply daily challenge boost (Level 24+): 2x XP from daily challenges
       const playerLevel = getPlayerLevel();
       const boostedXP = applyDailyChallengeBoost(selectedChallenge.bonusXP, playerLevel.level);
+      const wasBoosted = boostedXP > selectedChallenge.bonusXP;
+      setAwardedXP(boostedXP);
+      setXpWasBoosted(wasBoosted);
       addXP(boostedXP);
 
       // Mark challenge as completed in game store
@@ -385,13 +392,33 @@ export default function DailyChallengesPage() {
                 </div>
                 <div className="text-xs text-gray-500">{STRINGS.CORRECT}</div>
               </div>
-              <div className="bg-yellow-50 rounded-xl p-4">
+              <div className="bg-yellow-50 rounded-xl p-4 relative">
                 <div className="text-2xl font-bold text-yellow-600">
-                  +{selectedChallenge.bonusXP}
+                  +{awardedXP || selectedChallenge.bonusXP}
                 </div>
                 <div className="text-xs text-gray-500">{STRINGS.BONUS_XP}</div>
+                {xpWasBoosted && (
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow-md">
+                    2x!
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Challenge Expert bonus indicator */}
+            {xpWasBoosted && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mb-6 p-3 bg-gradient-to-r from-amber-100 to-orange-100 rounded-xl border border-amber-200"
+              >
+                <div className="flex items-center justify-center gap-2 text-amber-700 font-medium">
+                  <span className="text-xl">🏆</span>
+                  <span>Utmaningsexpert aktiverad! 2x XP</span>
+                </div>
+              </motion.div>
+            )}
 
             {selectedChallenge.type === 'speed_run' && (
               <div className="mb-6 p-4 bg-blue-50 rounded-xl">

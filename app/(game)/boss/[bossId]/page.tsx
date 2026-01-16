@@ -9,7 +9,7 @@ import { getBossById, getNextLevel } from '@/data/levels';
 import { getCardsByReligion, allCards } from '@/data/cards';
 import FlashCard from '@/components/cards/FlashCard';
 import { Card } from '@/types/card';
-import { playBossDamageSound, playBossVictorySound, playBossDefeatSound } from '@/lib/audio';
+import { playBossDamageSound, playBossVictorySound, playBossDefeatSound, playBossIntroSound, playBossBattleMusic, stopBossBattleMusic } from '@/lib/audio';
 import {
   BossEvent,
   generateBossEvent,
@@ -38,6 +38,8 @@ export default function BossPage() {
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+  const [introStep, setIntroStep] = useState<'entering' | 'stats' | 'ready'>('entering');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [bossHealth, setBossHealth] = useState(0);
   const [maxHealth, setMaxHealth] = useState(0);
@@ -58,6 +60,14 @@ export default function BossPage() {
 
   // Stable shuffle seed for consistent card order during battle
   const [shuffleSeed] = useState(() => Math.random());
+
+  // Pre-computed firework positions for victory animation
+  const [fireworkPositions] = useState(() =>
+    Array.from({ length: 30 }).map(() => ({
+      x: 20 + Math.random() * 60,
+      y: 20 + Math.random() * 60,
+    }))
+  );
 
   const boss = useMemo(() => getBossById(bossId), [bossId]);
 
@@ -121,9 +131,45 @@ export default function BossPage() {
     }
   }, [boss, cardProgress, religionCards, getPlayerLevel]);
 
+  // Cleanup music on unmount (user navigates away)
+  useEffect(() => {
+    return () => {
+      stopBossBattleMusic();
+    };
+  }, []);
+
+  // Intro animation sequence
+  useEffect(() => {
+    if (!mounted || !showIntro || !boss) return;
+
+    // Play intro sound
+    playBossIntroSound();
+
+    // Step 1: Boss enters (1.5s)
+    const enterTimer = setTimeout(() => {
+      setIntroStep('stats');
+    }, 1500);
+
+    // Step 2: Show stats (1s)
+    const statsTimer = setTimeout(() => {
+      setIntroStep('ready');
+    }, 2500);
+
+    return () => {
+      clearTimeout(enterTimer);
+      clearTimeout(statsTimer);
+    };
+  }, [mounted, showIntro, boss]);
+
+  const handleStartBattle = () => {
+    setShowIntro(false);
+    playBossBattleMusic();
+  };
+
   const handleVictory = useCallback(() => {
     if (!boss) return;
 
+    stopBossBattleMusic();
     playBossVictorySound();
     setVictory(true);
     completeLevel(boss.levelId, 3, score);
@@ -222,6 +268,7 @@ export default function BossPage() {
 
       if (newLives <= 0) {
         // Game over
+        stopBossBattleMusic();
         playBossDefeatSound();
         setGameOver(true);
       } else {
@@ -265,6 +312,9 @@ export default function BossPage() {
     setHasShield(false);
     setEventMessage(null);
     setShowCritical(false);
+
+    // Start battle music for retry
+    playBossBattleMusic();
   };
 
   if (!mounted) {
@@ -290,12 +340,61 @@ export default function BossPage() {
   const nextLevel = getNextLevel(boss.levelId);
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900 text-white relative overflow-hidden">
-      {/* Dramatic background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-64 h-64 bg-purple-500 rounded-full filter blur-[100px] opacity-20" />
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-red-500 rounded-full filter blur-[100px] opacity-20" />
-      </div>
+    <main className={`min-h-screen p-4 md:p-8 text-white relative overflow-hidden transition-colors duration-500 ${
+      currentEvent.type === 'boss_rage'
+        ? 'bg-gradient-to-b from-red-900 via-red-800 to-gray-900'
+        : currentEvent.type === 'speed_round'
+          ? 'bg-gradient-to-b from-yellow-900 via-orange-900 to-gray-900'
+          : currentEvent.type === 'shield_round'
+            ? 'bg-gradient-to-b from-blue-900 via-cyan-900 to-gray-900'
+            : 'bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900'
+    }`}>
+      {/* Dramatic background with animated pulse during events */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        animate={currentEvent.type !== 'normal' ? {
+          opacity: [0.2, 0.4, 0.2],
+        } : { opacity: 0.2 }}
+        transition={{ duration: 1, repeat: Infinity }}
+      >
+        <div className={`absolute top-0 left-1/4 w-64 h-64 rounded-full filter blur-[100px] ${
+          currentEvent.type === 'boss_rage' ? 'bg-red-500' :
+          currentEvent.type === 'speed_round' ? 'bg-yellow-500' :
+          currentEvent.type === 'shield_round' ? 'bg-blue-500' : 'bg-purple-500'
+        }`} />
+        <div className={`absolute bottom-0 right-1/4 w-64 h-64 rounded-full filter blur-[100px] ${
+          currentEvent.type === 'boss_rage' ? 'bg-orange-500' :
+          currentEvent.type === 'speed_round' ? 'bg-orange-500' :
+          currentEvent.type === 'shield_round' ? 'bg-cyan-500' : 'bg-red-500'
+        }`} />
+      </motion.div>
+
+      {/* Battle particles */}
+      {!showIntro && !victory && !gameOver && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(15)].map((_, i) => (
+            <motion.div
+              key={`battle-particle-${i}`}
+              initial={{ opacity: 0, y: '110vh', x: `${(i / 15) * 100}%` }}
+              animate={{
+                opacity: [0, 0.6, 0],
+                y: ['110vh', '-10vh'],
+              }}
+              transition={{
+                duration: 4 + (i % 3),
+                delay: i * 0.3,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+              className={`absolute w-2 h-2 rounded-full ${
+                currentEvent.type === 'boss_rage' ? 'bg-red-400' :
+                currentEvent.type === 'speed_round' ? 'bg-yellow-400' :
+                currentEvent.type === 'shield_round' ? 'bg-blue-400' : 'bg-purple-400'
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Screen shake on hit */}
       <AnimatePresence>
@@ -351,6 +450,119 @@ export default function BossPage() {
           >
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full shadow-lg font-bold text-lg">
               {eventMessage}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Boss Intro Screen */}
+      <AnimatePresence>
+        {showIntro && (
+          <motion.div
+            key="boss-intro"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900"
+          >
+            {/* Animated background particles */}
+            <div className="absolute inset-0 overflow-hidden">
+              {[...Array(30)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: '100vh' }}
+                  animate={{
+                    opacity: [0, 0.5, 0],
+                    y: [100, -100],
+                    x: Math.sin(i * 0.5) * 50,
+                  }}
+                  transition={{
+                    duration: 3,
+                    delay: i * 0.1,
+                    repeat: Infinity,
+                    repeatDelay: 0.5,
+                  }}
+                  className="absolute w-1 h-1 bg-red-400 rounded-full"
+                  style={{ left: `${(i / 30) * 100}%` }}
+                />
+              ))}
+            </div>
+
+            <div className="text-center relative z-10 px-4">
+              {/* Boss appearing animation */}
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              >
+                <motion.div
+                  animate={introStep !== 'entering' ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="text-[120px] md:text-[180px] mb-4"
+                >
+                  👹
+                </motion.div>
+              </motion.div>
+
+              {/* Boss name */}
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: introStep !== 'entering' ? 1 : 0, y: introStep !== 'entering' ? 0 : 30 }}
+                className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 mb-2"
+              >
+                {boss.name}
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: introStep !== 'entering' ? 0.8 : 0 }}
+                className="text-purple-300 text-lg mb-8"
+              >
+                {boss.description}
+              </motion.p>
+
+              {/* Stats preview */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{
+                  opacity: introStep === 'stats' || introStep === 'ready' ? 1 : 0,
+                  y: introStep === 'stats' || introStep === 'ready' ? 0 : 20
+                }}
+                className="flex justify-center gap-8 mb-8"
+              >
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-red-400">{maxHealth}</div>
+                  <div className="text-sm text-gray-400">HP</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-red-400">{lives}</div>
+                  <div className="text-sm text-gray-400">Dina liv</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-yellow-400">{cards.length}</div>
+                  <div className="text-sm text-gray-400">Frågor</div>
+                </div>
+              </motion.div>
+
+              {/* Start button */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{
+                  opacity: introStep === 'ready' ? 1 : 0,
+                  scale: introStep === 'ready' ? 1 : 0.8
+                }}
+              >
+                <motion.button
+                  onClick={handleStartBattle}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="px-12 py-4 bg-gradient-to-r from-red-600 to-orange-600 text-white font-black text-2xl rounded-2xl shadow-2xl border-4 border-red-400"
+                >
+                  ⚔️ STRID! ⚔️
+                </motion.button>
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -469,27 +681,70 @@ export default function BossPage() {
 
         {/* Victory Screen */}
         {victory && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-b from-yellow-900/80 to-yellow-800/80 backdrop-blur rounded-3xl p-8 text-center border-2 border-yellow-500"
-          >
+          <>
+            {/* Victory fireworks */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-30">
+              {fireworkPositions.map((pos, i) => (
+                <motion.div
+                  key={`firework-${i}`}
+                  initial={{
+                    opacity: 0,
+                    scale: 0,
+                    x: `${pos.x}%`,
+                    y: `${pos.y}%`,
+                  }}
+                  animate={{
+                    opacity: [0, 1, 1, 0],
+                    scale: [0, 1.5, 1.5, 0],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    delay: i * 0.1,
+                    repeat: Infinity,
+                    repeatDelay: 2,
+                  }}
+                  className={`absolute text-4xl ${
+                    i % 4 === 0 ? 'text-yellow-400' :
+                    i % 4 === 1 ? 'text-orange-400' :
+                    i % 4 === 2 ? 'text-red-400' : 'text-pink-400'
+                  }`}
+                >
+                  {i % 3 === 0 ? '✨' : i % 3 === 1 ? '🌟' : '⭐'}
+                </motion.div>
+              ))}
+            </div>
+
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
-              transition={{ type: 'spring', delay: 0.2 }}
-              className="text-8xl mb-4"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-b from-yellow-900/80 to-yellow-800/80 backdrop-blur rounded-3xl p-8 text-center border-2 border-yellow-500 relative z-40"
             >
-              🏆
-            </motion.div>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: [0, 1.2, 1], rotate: [0, 10, -10, 0] }}
+                transition={{ type: 'spring', delay: 0.2 }}
+                className="text-8xl mb-4"
+              >
+                🏆
+              </motion.div>
 
-            <h2 className="text-4xl font-black text-yellow-400 mb-2">
-              SEGER!
-            </h2>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 mb-2"
+              >
+                SEGER!
+              </motion.h2>
 
-            <p className="text-yellow-200 mb-6">
-              Du besegrade {boss.name}!
-            </p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-yellow-200 mb-6"
+              >
+                Du besegrade {boss.name}!
+              </motion.p>
 
             {/* Achievement badge */}
             {boss.rewardBadge && (
@@ -532,7 +787,8 @@ export default function BossPage() {
                 </Link>
               )}
             </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
 
         {/* Game Over Screen */}

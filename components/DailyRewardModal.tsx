@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, DailyRewardResult } from '@/stores/gameStore';
 import { playMysteryBoxOpen, playRewardReveal } from '@/lib/audio';
-import { hapticCelebration, hapticMedium } from '@/lib/haptics';
 
 // Confetti particle for the reveal
 function ConfettiParticle({ delay, color, randomX, randomRotate }: { delay: number; color: string; randomX: number; randomRotate: number }) {
@@ -53,7 +52,6 @@ export default function DailyRewardModal({ onClose, onSkip }: DailyRewardModalPr
   );
 
   const handleOpen = () => {
-    hapticMedium();
     setPhase('opening');
 
     // Play mystery box opening sound
@@ -71,7 +69,6 @@ export default function DailyRewardModal({ onClose, onSkip }: DailyRewardModalPr
       if (settings.soundEnabled) {
         playRewardReveal();
       }
-      hapticCelebration();
 
       // Animate XP counter
       const duration = 1000;

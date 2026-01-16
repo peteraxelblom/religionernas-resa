@@ -24,6 +24,9 @@ interface GameState extends SavedGameData {
   // Avatar selection (persisted)
   avatarId: string;
 
+  // Boss unlock acknowledgment (persisted)
+  acknowledgedBossIds: string[]; // Bosses user has seen the unlock modal for
+
   // Daily challenge tracking (persisted)
   dailyChallengeCompletions: Record<string, string>; // challengeId -> date completed
 
@@ -81,6 +84,10 @@ interface GameState extends SavedGameData {
   // Streak Shield
   isShieldAvailable: () => boolean; // Shield unlocked AND not used today
   clearShieldActivation: () => void; // Clear the lastShieldActivation flag after showing UI
+
+  // Boss unlock acknowledgment
+  acknowledgeBoss: (bossId: string) => void;
+  isBossAcknowledged: (bossId: string) => boolean;
 
   // Onboarding
   completeOnboarding: () => void;
@@ -144,6 +151,9 @@ export const useGameStore = create<GameState>()(
 
       // Avatar selection
       avatarId: 'explorer',
+
+      // Boss unlock acknowledgment
+      acknowledgedBossIds: [],
 
       // Streak Shield state
       shieldUsedToday: false,
@@ -456,6 +466,19 @@ export const useGameStore = create<GameState>()(
         set({ lastShieldActivation: false });
       },
 
+      // Boss unlock acknowledgment
+      acknowledgeBoss: (bossId) => {
+        set((state) => ({
+          acknowledgedBossIds: state.acknowledgedBossIds.includes(bossId)
+            ? state.acknowledgedBossIds
+            : [...state.acknowledgedBossIds, bossId],
+        }));
+      },
+
+      isBossAcknowledged: (bossId) => {
+        return get().acknowledgedBossIds.includes(bossId);
+      },
+
       // Onboarding
       completeOnboarding: () => {
         set({ hasCompletedOnboarding: true, onboardingStep: null });
@@ -691,6 +714,10 @@ export const useGameStore = create<GameState>()(
         stats: state.stats,
         settings: state.settings,
         dailyChallengeCompletions: state.dailyChallengeCompletions,
+        // Avatar
+        avatarId: state.avatarId,
+        // Boss unlock acknowledgment
+        acknowledgedBossIds: state.acknowledgedBossIds,
         // Streak Shield state (resets daily via shieldLastUsedDate comparison)
         shieldUsedToday: state.shieldUsedToday,
         shieldLastUsedDate: state.shieldLastUsedDate,

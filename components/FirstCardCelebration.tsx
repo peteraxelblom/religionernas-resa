@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { playAchievementSound } from '@/lib/audio';
-import { hapticCelebration } from '@/lib/haptics';
 import { CelebrationAvatar } from './PlayerAvatar';
 
 // Confetti particle component
@@ -58,9 +57,6 @@ export default function FirstCardCelebration({ xpEarned, wasCorrect, onContinue 
     // Only play celebration sound for correct answers
     if (wasCorrect && settings.soundEnabled) {
       playAchievementSound();
-    }
-    if (wasCorrect) {
-      hapticCelebration();
     }
 
     // Animate XP counter

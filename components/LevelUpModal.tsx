@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getRewardAtLevel, getTitleForLevel } from '@/lib/playerLevel';
 import { playAchievementSound } from '@/lib/audio';
-import { hapticCelebration } from '@/lib/haptics';
 
 interface LevelUpModalProps {
   newLevel: number;
@@ -52,9 +51,8 @@ export default function LevelUpModal({ newLevel, previousLevel, onClose, playerN
   );
 
   useEffect(() => {
-    // Play level-up sound and haptic
+    // Play level-up sound
     playAchievementSound();
-    hapticCelebration();
 
     // Auto-hide confetti after animation
     const timer = setTimeout(() => setShowConfetti(false), 3000);
