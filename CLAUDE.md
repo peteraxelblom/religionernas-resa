@@ -107,19 +107,28 @@ Key files: `app/(game)/collection/page.tsx`, `CollectionCard.tsx`, `ArtifactDisp
 
 ### Journey Map
 Visual representation of the 39-level journey:
-- **JourneyPath** - SVG paths connecting levels within each religion
 - **Player Avatar** - Shows current position on map with glow effect
 - **Religion Sections** - Judaism (blue), Christianity (gold), Islam (green)
 - **Boss Markers** - Larger nodes for boss battles
+- **Religion Themes** - Color schemes per religion (lib/religionThemes.ts)
 
-Key files: `JourneyPath.tsx`, `app/(game)/map/page.tsx`
+Key files: `app/(game)/map/page.tsx`, `lib/religionThemes.ts`
+
+### Boss Battles
+Epic encounters at the end of each religion section:
+- **Boss Intro** - Dramatic entrance with stats preview before battle
+- **Boss Unlock Modal** - Celebratory notification when boss becomes available
+- **Battle Music** - Low tension drone loops during combat
+- **Special Events** - Speed rounds, shield rounds, boss rage mechanics
+
+Key files: `app/(game)/boss/[bossId]/page.tsx`, `components/BossUnlockModal.tsx`, `lib/bossMechanics.ts`
 
 ### Visual Juice
 - **ParticleBackground** - Floating particles on home screen
 - **Shimmer effects** - On XP progress bars
 - **Pulse glow** - On level badges
-- **Haptic feedback** - On interactions (mobile)
 - **Avatar glow** - Animated glow on player avatar
+- **Religion Themes** - Dynamic color schemes per religion
 
 ### Audio
 All sounds synthesized with Web Audio API in `lib/audio.ts`:
@@ -127,6 +136,8 @@ All sounds synthesized with Web Audio API in `lib/audio.ts`:
 - `playMysteryBoxOpen()`, `playRewardReveal()` - Daily rewards
 - `playMasterySound()` - Card mastery celebration
 - `playLevelCompleteSound()`, `playBossVictorySound()` - Level completion
+- `playBossIntroSound()`, `playBossUnlockSound()` - Boss encounters
+- `playBossBattleMusic()`, `stopBossBattleMusic()` - Looping battle music
 
 ---
 
